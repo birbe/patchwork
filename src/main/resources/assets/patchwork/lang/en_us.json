@@ -1,0 +1,20 @@
+{
+  "itemGroup.patchwork": "Example Mod Tab",
+  "block.patchwork.example_block": "Example Block",
+  "item.patchwork.example_item": "Example Item",
+
+  "block.patchwork.sf_controller": "SF Controller",
+  "block.patchwork.sf_cable": "SF Cable",
+  "block.patchwork.sf_interface": "SF Interface",
+  "block.patchwork.sf_terminal": "SF Terminal",
+  "item.patchwork.superconducting_ingot": "Superconducting Ingot",
+  "creativeTab.patchwork": "Patchwork",
+
+  "patchwork.configuration.title": "Patchwork Configs",
+  "patchwork.configuration.section.patchwork.common.toml": "Patchwork Configs",
+  "patchwork.configuration.section.patchwork.common.toml.title": "Patchwork Configs",
+  "patchwork.configuration.items": "Item List",
+  "patchwork.configuration.logDirtBlock": "Log Dirt Block",
+  "patchwork.configuration.magicNumberIntroduction": "Magic Number Text",
+  "patchwork.configuration.magicNumber": "Magic Number"
+}

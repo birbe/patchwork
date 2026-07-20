@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "patchwork:block/sf_terminal"
+    },
+    "powered=true": {
+      "model": "patchwork:block/sf_terminal"
+    }
+  }
+}

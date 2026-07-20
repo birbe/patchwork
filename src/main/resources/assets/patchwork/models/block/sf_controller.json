@@ -1,0 +1,6 @@
+ {
+  "parent": "minecraft:block/stone",
+  "textures": {
+    "all": "patchwork:block/sf_controller"
+  }
+}

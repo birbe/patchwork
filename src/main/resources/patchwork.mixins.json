@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "party.stoat.patchwork.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "ContainerInMachineLevelYupThatsValidYup"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
