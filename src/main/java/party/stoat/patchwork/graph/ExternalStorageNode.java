@@ -10,19 +10,15 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.DirectionalBlock;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
-import org.jspecify.annotations.Nullable;
-import party.stoat.patchwork.Config;
 import party.stoat.patchwork.Patchwork;
 import party.stoat.patchwork.block.ControllerConfiguration;
-import party.stoat.patchwork.block.ModBlocks;
 import party.stoat.patchwork.block.PatchInstance;
 import party.stoat.patchwork.graphlib.SFInterfaceNode;
 
 import java.util.UUID;
 
-public class ExternalStorageNode extends ContainerNode {
+public class ExternalStorageNode extends VirtualizedBlockNode {
 
     public record Configuration(BlockPos interfacePos, ResourceKey<Level> level, Direction facing) implements NodeConfiguration {}
 

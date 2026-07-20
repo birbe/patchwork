@@ -35,11 +35,11 @@ public abstract class AbstractButton extends Renderable {
     }
 
     @Override
-    public void paint(GuiGraphicsExtractor g, Renderable.Layout l) { }
+    public void paint(GuiGraphicsExtractor g, Layout l) { }
 
     @Override
-    public Renderable.Layout extractInnerLayout(int x, int y) {
-        return new Renderable.Layout(x, y, this.width, this.height, this, List.of(), false);
+    protected Layout extractInnerLayout(int x, int y) {
+        return new Layout(x, y, this.width, this.height, this, List.of(), false);
     }
 
 }

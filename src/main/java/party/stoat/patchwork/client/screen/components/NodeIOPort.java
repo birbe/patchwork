@@ -22,7 +22,7 @@ public class NodeIOPort extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         return new Layout(x - 2, y - 2, 8, 8, this, List.of(), false);
     }
 

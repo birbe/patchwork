@@ -52,8 +52,6 @@ public class PatchworkClient {
                 .withBindGroupLayout(BindGroupLayouts.PROJECTION)
                 .withVertexBinding(0, POS_COL_FLOAT)
                 .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
-                .withDepthStencilState(Optional.empty())
-                .withoutStencilTest()
                 .build();
     }
 }

@@ -16,7 +16,7 @@ public class Text extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         return new Layout(x, y, EditorScreen.FONT.width(this.content), EditorScreen.FONT.lineHeight, this, List.of(), false);
     }
 

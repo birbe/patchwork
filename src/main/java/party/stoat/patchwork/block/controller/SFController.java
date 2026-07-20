@@ -91,9 +91,9 @@ public class SFController extends BaseEntityBlock implements SFNetworkConnectabl
         if (level instanceof ServerLevel serverLevel && level.getBlockEntity(pos) instanceof SFControllerBlockEntity e) {
             player.openMenu(e);
             e.watcher = (ServerPlayer) player;
-            var descriptors = ControllerConfiguration.getNodesFromNetworkResources(Patchwork.UNIVERSE.getGraphWorld(serverLevel).getGraphForNode(
+            var descriptors = e.config.getNodesFromNetworkResources(Patchwork.UNIVERSE.getGraphWorld(serverLevel).getGraphForNode(
                     new NodePos(pos, SFControllerNode.INSTANCE)
-            ));
+            ), level.getServer());
             PacketDistributor.sendToPlayer((ServerPlayer) player, new SFControllerSyncClientboundPayload(new Gson().toJson(e.config.graphs), new Gson().toJson(descriptors), pos));
         }
 

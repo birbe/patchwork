@@ -1,6 +1,5 @@
 package party.stoat.patchwork.client.screen.components;
 
-import com.google.gson.Gson;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.ARGB;
@@ -8,7 +7,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec2;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
-import org.jspecify.annotations.Nullable;
 import party.stoat.patchwork.client.screen.EditorScreen;
 import party.stoat.patchwork.graph.NodeDescriptor;
 import party.stoat.patchwork.network.OpenRemoteMachineServerboundPayload;
@@ -26,13 +24,15 @@ public class RenderableGraphNode extends Renderable {
     boolean mouseDown = false;
     boolean dragging = false;
 
-    UUID uuid;
-    NodeDescriptor descriptor;
+    public UUID uuid;
+    public NodeDescriptor descriptor;
     List<Renderable> children = new ArrayList<>();
 
     private ImageButton openRemote;
 
     private static final int HEADER_HEIGHT = 20;
+
+    public boolean highlighted = false;
 
     public HashMap<String, NodeIO> ports = new HashMap<>();
 
@@ -88,9 +88,11 @@ public class RenderableGraphNode extends Renderable {
     public void paint(GuiGraphicsExtractor g, Layout l) {
         super.paint(g, l);
 
-        g.fill(l.x(), l.y(), l.x() + l.width(), l.y() + l.height(), ARGB.color(255, 60, 60, 60));
+        var borderFill = this.highlighted ? ARGB.color(255, 200, 200, 200) : ARGB.color(255, 60, 60, 60);
+
+        g.fill(l.x(), l.y(), l.x() + l.width(), l.y() + l.height(), borderFill);
         g.fill(l.x() + 1, l.y() + 1, l.x() + l.width() - 1, l.y() + l.height() - 1, ARGB.color(255, 35, 35, 35));
-        g.fill(l.x(), l.y(), l.x() + l.width(), l.y() + HEADER_HEIGHT, this.descriptor.color());
+        g.fill(l.x() + 1, l.y() + 1, l.x() + l.width() - 1, l.y() + HEADER_HEIGHT, this.descriptor.color());
 
         if(descriptor.icon() != null) {
             Item item = BuiltInRegistries.ITEM.get(descriptor.icon()).get().value();
@@ -109,8 +111,16 @@ public class RenderableGraphNode extends Renderable {
     public boolean onMouseDown(int x, int y, EditorScreen.EditorState state) {
         if(state.getCurrentGraph() == null) return false;
 
+        if(!this.preview) {
+            if(!state.selectedNodes.contains(this)) state.selectedNodes.add(this);
+            this.highlighted = true;
+        }
+        
         if(this.preview) {
             var newNode = new RenderableGraphNode(this.descriptor, UUID.randomUUID(), false);
+
+            newNode.highlighted = true;
+
             newNode.mouseDown = true;
             mX = 50;
             mY = 4;
@@ -118,6 +128,11 @@ public class RenderableGraphNode extends Renderable {
 
             state.graphNodeToRenderableMap.put(newNode.uuid, newNode);
             state.graphNodes.elements.add(newNode);
+
+            state.selectedNodes.forEach(node -> node.highlighted = false);
+            state.selectedNodes.clear();
+            state.selectedNodes.add(newNode);
+
             return false;
         }
 
@@ -133,11 +148,13 @@ public class RenderableGraphNode extends Renderable {
         dragging = mouseDown;
 
         if (dragging) {
-            this.offsetX += x - mX;
-            this.offsetY += y - mY;
+            state.selectedNodes.forEach(node -> {
+                node.offsetX += x - mX;
+                node.offsetY += y - mY;
+                state.getCurrentGraph().nodePositions.put(node.uuid, new Vec2(node.offsetX, node.offsetY));
+            });
 
             state.markDirty();
-            state.getCurrentGraph().nodePositions.put(this.uuid, new Vec2(this.offsetX, this.offsetY));
         }
     }
 
@@ -146,11 +163,16 @@ public class RenderableGraphNode extends Renderable {
         mouseDown = false;
         dragging = false;
 
+        if (!state.shiftPressed) {
+            state.selectedNodes.forEach(node -> node.highlighted = node == this);
+            state.selectedNodes.removeIf(node -> node != this);
+        }
+
         return false;
     }
 
     @Override
-    public Layout extractInnerLayout(int dX, int dY) {
+    protected Layout extractInnerLayout(int dX, int dY) {
         int w = 0;
         int h = 0;
 

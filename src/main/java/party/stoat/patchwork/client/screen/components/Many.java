@@ -14,7 +14,7 @@ public class Many extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         int w = 0;
         int h = 0;
 

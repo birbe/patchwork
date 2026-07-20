@@ -17,6 +17,7 @@ public class Nodes {
     static {
 
         register("sf_interface", ExternalStorageNode::new);
+        register("virtual", VirtualizedBlockNode::new);
 
     }
 

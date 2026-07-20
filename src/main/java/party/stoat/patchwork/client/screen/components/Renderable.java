@@ -102,6 +102,6 @@ public abstract class Renderable {
         return layoutCache;
     }
 
-    public abstract Layout extractInnerLayout(int x, int y);
+    protected abstract Layout extractInnerLayout(int x, int y);
 
 }

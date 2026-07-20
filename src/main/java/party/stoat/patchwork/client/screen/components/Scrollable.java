@@ -60,7 +60,7 @@ public class Scrollable<T extends Renderable> extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         var l = this.scissor.extractLayout(x, y);
         return new Layout(l.x(), l.y(), l.x() + this.width, l.y() + this.height, this, List.of(l), false);
     }

@@ -26,7 +26,7 @@ public class Dropdown extends Renderable {
         int height = EditorScreen.FONT.lineHeight + 4;
 
         @Override
-        public Layout extractInnerLayout(int x, int y) {
+        protected Layout extractInnerLayout(int x, int y) {
             return new Layout(x, y, Dropdown.this.width, EditorScreen.FONT.lineHeight + 4, this, List.of(Dropdown.this.title.extractInnerLayout(x + 2, y + 2)), false);
         }
 
@@ -71,7 +71,7 @@ public class Dropdown extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         if(!this.open) {
             return this.header.extractLayout(x, y);
         } else {

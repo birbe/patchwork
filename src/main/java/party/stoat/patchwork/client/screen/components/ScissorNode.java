@@ -49,7 +49,7 @@ public class ScissorNode extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         var childLayout = child.extractLayout(x + innerOffsetX, y + innerOffsetY);
 
         return new Layout(x, y, width != 0 ? width : childLayout.width(), height != 0 ? height : childLayout.height(), this, List.of(childLayout), false);

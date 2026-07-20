@@ -1,19 +1,14 @@
 package party.stoat.patchwork.graph;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.kneelawk.graphlib.api.graph.BlockGraph;
-import com.kneelawk.graphlib.api.util.NodePos;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
@@ -23,18 +18,15 @@ import party.stoat.patchwork.Patchwork;
 import party.stoat.patchwork.block.ControllerConfiguration;
 import party.stoat.patchwork.block.PatchInstance;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.UUID;
 
-public class ContainerNode extends Node {
+public class VirtualizedBlockNode extends Node {
 
     private static final Identifier IDENTIFIER = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "patch_nodes/container_node");
 
     public BlockPos proxyPos;
 
-    public ContainerNode(UUID uuid, NodeDescriptor descriptor) {
+    public VirtualizedBlockNode(UUID uuid, NodeDescriptor descriptor) {
         super(uuid, descriptor);
     }
 
@@ -94,9 +86,12 @@ public class ContainerNode extends Node {
         var storage = level.getCapability(Capabilities.Item.BLOCK, this.proxyPos, port.direction());
 
 //        Storage<ItemVariant> storage = ItemStorage.SIDED.find(level, this.proxyPos, port.direction());
+        if(stack.getItem() == Items.AIR) return false;
         if(storage != null) {
             try(Transaction nested = Transaction.open(transaction)) {
-                var inserted = storage.insert(ItemResource.of(stack), stack.count(), nested);
+                var resource = ItemResource.of(stack);
+                if(resource.isEmpty()) return false;
+                var inserted = storage.insert(resource, stack.count(), nested);
                 if(inserted == stack.count()) {
                     nested.commit();
                     return true;
@@ -113,7 +108,7 @@ public class ContainerNode extends Node {
 
     @Override
     public void acceptConfiguration(String string) {
-
+        this.proxyPos = new Gson().fromJson(string, new TypeToken<BlockPos>() {}.getType());
     }
 
 }

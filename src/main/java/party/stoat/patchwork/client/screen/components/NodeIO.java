@@ -24,7 +24,7 @@ public class NodeIO extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         Layout displayLayout;
         Layout portLayout;
 

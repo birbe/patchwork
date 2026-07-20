@@ -75,41 +75,8 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
                 var id = UUID.randomUUID();
 
                 var pos = Patchwork.VIRTUAL_MANAGER.allocate(machineLevel, id, stack);
-                Node node;
 
-//                if(stack.getItem() instanceof BlockItem blockItem) {
-//                    if(blockItem.getBlock() instanceof FurnaceBlock) {
-//                        node = new StaticContainerNode(id, machineLevel, pos, new NodeDescriptor(
-//                                blockItem.getBlock().getName().getString(),
-//                                List.of(
-//                                        new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
-//                                        new NodeDescriptor.IO("Fuel", "fuelin", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.UP)
-//                                ),
-//                                List.of(
-//                                        new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.DOWN)
-//                                ),
-//                                ARGB.color(255, 40, 40, 40),
-//                                Identifier.withDefaultNamespace("furnace"),
-//                                BuiltInRegistries.ITEM.getKey(blockItem),
-//                                ""
-//                        ), Blocks.FURNACE);
-//                    } else if(blockItem.getBlock() instanceof ChestBlock chestBlock) {
-//                        node = new StaticContainerNode(id, machineLevel, pos, new NodeDescriptor(
-//                                chestBlock.getName().getString(),
-//                                List.of(
-//                                        new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.UP)
-//                                ),
-//                                List.of(
-//                                        new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.DOWN)
-//                                ),
-//                                ARGB.color(255, 110, 100, 105),
-//                                Identifier.withDefaultNamespace("chest"),
-//                                BuiltInRegistries.ITEM.getKey(blockItem),
-//                                ""
-//                        ), blockItem.getBlock());
-//                    } else node = new ContainerNode(id, null);
-//
-//                }
+                entity.config.virtualized.add(pos);
             }
         }
 

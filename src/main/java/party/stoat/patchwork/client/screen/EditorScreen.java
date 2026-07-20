@@ -89,10 +89,12 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
 
         public boolean editorDirty = false;
 
+        public boolean shiftPressed = false;
         public Many graphNodes = new Many(new ArrayList<>());
         public HashMap<UUID, RenderableGraphNode> graphNodeToRenderableMap = new HashMap<>();
 
         public List<PatchGraph> patchGraphs = new ArrayList<>();
+        public List<RenderableGraphNode> selectedNodes = new ArrayList<>();
 
         public List<NodeDescriptor> serverProvidedDescriptors = new ArrayList<>();
 
@@ -114,6 +116,11 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
     public boolean mouseClicked(@NonNull MouseButtonEvent event, boolean doubleClick) {
         if (this.lastLayout != null) {
             var result = this.lastLayout.onMouseDown((int) event.x(), (int) event.y(), this.state);
+
+            if(!result) {
+                state.selectedNodes.forEach(node -> node.highlighted = false);
+                state.selectedNodes.clear();
+            }
         }
 
         super.mouseClicked(event, doubleClick);
@@ -126,7 +133,6 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
         if (this.lastLayout != null) {
             this.lastLayout.onMouseUp((int) event.x(), (int) event.y(), this.state);
         }
-
 
         super.mouseReleased(event);
 
@@ -165,10 +171,31 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
     }
 
     @Override
+    public boolean keyReleased(KeyEvent event) {
+        if(event.key() == GLFW.GLFW_KEY_LEFT_SHIFT) state.shiftPressed = false;
+
+        return super.keyReleased(event);
+    }
+
+    @Override
     public boolean keyPressed(KeyEvent event) {
         if(event.hasControlDown() && event.key() == GLFW.GLFW_KEY_S) {
             this.save();
             return true;
+        }
+
+        if(event.key() == GLFW.GLFW_KEY_LEFT_SHIFT) state.shiftPressed = true;
+        
+        if(event.key() == GLFW.GLFW_KEY_DELETE) {
+            for(var node : state.selectedNodes) {
+                if(state.getCurrentGraph() == null) break;
+                this.state.graphNodes.elements.removeIf(renderable -> renderable == node);
+                state.getCurrentGraph().nodeDescriptors.remove(node.uuid);
+                state.getCurrentGraph().connections.removeIf(
+                        conn -> conn.from() == node.uuid || conn.to() == node.uuid
+                );
+            }
+            state.selectedNodes.clear();
         }
 
         if(this.lastLayout != null) this.lastLayout.onKeyDown(event.key());
@@ -192,7 +219,7 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
         }
 
         @Override
-        public Layout extractInnerLayout(int x, int y) {
+        protected Layout extractInnerLayout(int x, int y) {
             return new Layout(x, y, 16, 16, this, List.of(), false);
         }
 

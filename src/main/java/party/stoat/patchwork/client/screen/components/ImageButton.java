@@ -48,7 +48,7 @@ public class ImageButton extends AbstractButton {
     }
 
     @Override
-    public Layout extractInnerLayout(int x, int y) {
+    protected Layout extractInnerLayout(int x, int y) {
         if(this.text != null) {
             this.text.extractLayout(0, 0);
             var textLayout = this.text.extractLayout(x + (this.width - text.layoutCache.width()) / 2, y + (this.height - text.layoutCache.height()) / 2);

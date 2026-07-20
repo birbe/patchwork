@@ -40,13 +40,12 @@ import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import party.stoat.patchwork.block.ControllerConfiguration;
 import party.stoat.patchwork.block.PatchInstance;
 import party.stoat.patchwork.block.SFControllerMenu;
 import party.stoat.patchwork.block.SFNetworkConnectable;
 import party.stoat.patchwork.block.controller.SFControllerBlockEntity;
 import party.stoat.patchwork.client.screen.EditorScreen;
-import party.stoat.patchwork.graph.ContainerNode;
+import party.stoat.patchwork.graph.VirtualizedBlockNode;
 import party.stoat.patchwork.graph.NodeDescriptor;
 import party.stoat.patchwork.graph.PatchGraph;
 import party.stoat.patchwork.graphlib.SFCableNode;
@@ -198,7 +197,7 @@ public class Patchwork {
                 OpenRemoteMachineServerboundPayload.TYPE, OpenRemoteMachineServerboundPayload.CODEC, (payload, context) -> {
                     if(context.player().level().getBlockEntity(payload.pos()) instanceof SFControllerBlockEntity e) {
                         var node = e.config.instances.get(payload.patch()).nodes.get(payload.node());
-                        if(node != null && node instanceof ContainerNode containerNode) {
+                        if(node != null && node instanceof VirtualizedBlockNode containerNode) {
                             var machineLevel = context.player().level().getServer().getLevel(MyBlocks.MACHINE_LEVEL);
                             context.player().closeContainer();
 
@@ -225,9 +224,9 @@ public class Patchwork {
                         e.config.instances.put(newPatch.graphId, instance);
                         instance.initialize(context.player().level().getServer());
 
-                        var descriptors = ControllerConfiguration.getNodesFromNetworkResources(Patchwork.UNIVERSE.getGraphWorld((ServerLevel) context.player().level()).getGraphForNode(
+                        var descriptors = e.config.getNodesFromNetworkResources(Patchwork.UNIVERSE.getGraphWorld((ServerLevel) context.player().level()).getGraphForNode(
                                 new NodePos(payload.pos(), SFControllerNode.INSTANCE)
-                        ));
+                        ), context.player().level().getServer());
 
                         PacketDistributor.sendToPlayer((ServerPlayer) context.player(), new SFControllerSyncClientboundPayload(new Gson().toJson(e.config.graphs), new Gson().toJson(descriptors), payload.pos()));
                     }
@@ -241,9 +240,9 @@ public class Patchwork {
                         e.config.graphs.add(patch);
                         e.setChanged();
 
-                        var descriptors = ControllerConfiguration.getNodesFromNetworkResources(Patchwork.UNIVERSE.getGraphWorld((ServerLevel) context.player().level()).getGraphForNode(
+                        var descriptors = e.config.getNodesFromNetworkResources(Patchwork.UNIVERSE.getGraphWorld((ServerLevel) context.player().level()).getGraphForNode(
                                 new NodePos(payload.pos(), SFControllerNode.INSTANCE)
-                        ));
+                        ), context.player().level().getServer());
 
                         PacketDistributor.sendToPlayer((ServerPlayer) context.player(), new SFControllerSyncClientboundPayload(new Gson().toJson(e.config.graphs), new Gson().toJson(descriptors), payload.pos()));
                     }

@@ -22,7 +22,7 @@ public class VerticalList<T extends Renderable> extends Renderable {
     }
 
     @Override
-    public Layout extractInnerLayout(int dX, int dY) {
+    protected Layout extractInnerLayout(int dX, int dY) {
 
         int maxWidth = this.width;
         int listY = 0;
