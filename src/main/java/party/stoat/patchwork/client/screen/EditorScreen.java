@@ -154,9 +154,7 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
         this.state.editorDirty = false;
         ClientPacketDistributor.sendToServer(new UpdatePatchServerboundPayload(
                 state.getCurrentGraph().graphId,
-                new Gson().toJson(
-                        state.getCurrentGraph()
-                ),
+                state.getCurrentGraph(),
                 this.state.controllerPos
         ));
     }
@@ -255,7 +253,7 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
                                 "System Power",
                                 List.of(),
                                 List.of(
-                                        new NodeDescriptor.IO("Power out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), null)
+                                        new NodeDescriptor.IO("Power out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Optional.empty())
                                 ),
                                 NodeDescriptor.DataType.Energy.color,
                                 SFSystemPowerNode.IDENTIFIER,
@@ -268,10 +266,10 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
                         new NodeDescriptor(
                                 "Splitter",
                                 List.of(
-                                        new NodeDescriptor.IO("Items in", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), null)
+                                        new NodeDescriptor.IO("Items in", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Optional.empty())
                                 ),
                                 List.of(
-                                        new NodeDescriptor.IO("Items out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, true), null)
+                                        new NodeDescriptor.IO("Items out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, true), Optional.empty())
                                 ),
                                 NodeDescriptor.DataType.Item.color,
                                 SplitterNode.IDENTIFIER,

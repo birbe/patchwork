@@ -35,28 +35,28 @@ public class VirtualizedBlockNode extends Node {
     public @Nullable ResourceHandler<ChemicalResource> getChemicalHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
-        return level.getCapability(mekanism.common.capabilities.Capabilities.CHEMICAL.block(), this.proxyPos, port.direction());
+        return level.getCapability(mekanism.common.capabilities.Capabilities.CHEMICAL.block(), this.proxyPos, port.direction().orElse(null));
     }
 
     @Override
     public @Nullable ResourceHandler<ItemResource> getItemHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
-        return level.getCapability(Capabilities.Item.BLOCK, this.proxyPos, port.direction());
+        return level.getCapability(Capabilities.Item.BLOCK, this.proxyPos, port.direction().orElse(null));
     }
 
     @Override
     public @Nullable ResourceHandler<FluidResource> getFluidHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
-        return level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction());
+        return level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction().orElse(null));
     }
 
     @Override
     public @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
-        return level.getCapability(Capabilities.Energy.BLOCK, this.proxyPos, port.direction());
+        return level.getCapability(Capabilities.Energy.BLOCK, this.proxyPos, port.direction().orElse(null));
     }
 
     @Override
@@ -74,7 +74,7 @@ public class VirtualizedBlockNode extends Node {
 
             switch(port.d().d()) {
                 case Chemical -> {
-                    var storage = level.getCapability(mekanism.common.capabilities.Capabilities.CHEMICAL.block(), this.proxyPos, port.direction());
+                    var storage = level.getCapability(mekanism.common.capabilities.Capabilities.CHEMICAL.block(), this.proxyPos, port.direction().orElse(null));
                     var foreignStorage = connectedNode.getChemicalHandler(level, foreignPort, patchInstance);
 
                     if(foreignStorage == null) continue;
@@ -116,7 +116,7 @@ public class VirtualizedBlockNode extends Node {
                     }
                 }
                 case Item -> {
-                    var storage = level.getCapability(Capabilities.Item.BLOCK, this.proxyPos, port.direction());
+                    var storage = level.getCapability(Capabilities.Item.BLOCK, this.proxyPos, port.direction().orElse(null));
 
                     if(storage != null) try(Transaction transaction = Transaction.open(context)) {
 
@@ -147,7 +147,7 @@ public class VirtualizedBlockNode extends Node {
                 case Inventory -> {
                 }
                 case Fluid -> {
-                    var storage = level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction());
+                    var storage = level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction().orElse(null));
 
                     if(storage != null) try(Transaction transaction = Transaction.open(context)) {
 

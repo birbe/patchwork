@@ -519,6 +519,12 @@ public class StorageConfiguration {
     }
 
     public static record NodeCategory(String name, List<NodeDescriptor> nodes) {
+
+        public static final Codec<NodeCategory> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.STRING.fieldOf("name").forGetter(NodeCategory::name),
+                Codec.list(NodeDescriptor.CODEC).fieldOf("nodes").forGetter(NodeCategory::nodes)
+        ).apply(instance, NodeCategory::new));
+
     }
 
     public static boolean isStorageItem(Item item) {
@@ -584,8 +590,7 @@ public class StorageConfiguration {
     public static void syncToPlayer(List<StorageConfiguration> configs, BlockGraph graph, ServerLevel level, ServerPlayer player, BlockPos controllerPos) {
         var descriptors = StorageConfiguration.getNodesFromNetworkResources(configs, graph, level, player);
 
-        var graphs = new Gson().toJson(configs.stream().filter(c -> c.graphs != null).flatMap(c -> c.graphs.stream()).toList());
-        PacketDistributor.sendToPlayer(player, new SFControllerSyncClientboundPayload(graphs, new Gson().toJson(descriptors), controllerPos));
+        PacketDistributor.sendToPlayer(player, new SFControllerSyncClientboundPayload(configs.stream().filter(c -> c.graphs != null).flatMap(c -> c.graphs.stream()).toList(), descriptors, controllerPos));
     }
 
     public static List<NodeCategory> getNodesFromNetworkResources(List<StorageConfiguration> configs, BlockGraph graph, ServerLevel level, ServerPlayer player) {

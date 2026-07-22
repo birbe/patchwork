@@ -55,14 +55,18 @@ public record NodeDescriptor(String title, List<IO> inputs, List<IO> outputs, in
 
     }
 
-    public record IO(String name, String key, Data d, Direction direction) {
+    public record IO(String name, String key, Data d, Optional<Direction> direction) {
+
+        public IO(String name, String key, Data d, Direction direction) {
+            this(name, key, d, Optional.of(direction));
+        }
 
         public static final Codec<IO> CODEC = RecordCodecBuilder.create(instance ->
                 instance.group(
                         Codec.STRING.fieldOf("name").forGetter(IO::name),
                         Codec.STRING.fieldOf("key").forGetter(IO::key),
                         Data.CODEC.fieldOf("data").forGetter(IO::d),
-                        Direction.CODEC.fieldOf("direction").forGetter(IO::direction)
+                        Direction.CODEC.optionalFieldOf("direction").forGetter(IO::direction)
                 ).apply(instance, IO::new)
         );
 

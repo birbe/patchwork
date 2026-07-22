@@ -69,10 +69,7 @@ import party.stoat.patchwork.virtual.*;
 import party.stoat.patchwork.network.*;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Supplier;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -285,10 +282,8 @@ public class Patchwork {
                         }
 
                         editor.state.controllerPos = payload.controllerPos();
-                        Type type = new TypeToken<List<PatchGraph>>() {}.getType();
-
-                        editor.state.patchGraphs = new Gson().fromJson(payload.patches(), type);
-                        editor.state.serverProvidedDescriptors = new Gson().fromJson(payload.nodeDescriptors(), new com.google.gson.reflect.TypeToken<List<StorageConfiguration.NodeCategory>>() {}.getType());
+                        editor.state.patchGraphs = new ArrayList<>(payload.patches());
+                        editor.state.serverProvidedDescriptors = payload.nodeDescriptors();
 
                         if(editor.state.getCurrentGraph() == null && !editor.state.patchGraphs.isEmpty()) editor.setGraph(editor.state.patchGraphs.get(0));
 
@@ -355,7 +350,7 @@ public class Patchwork {
         registrar.playToServer(
                 UpdatePatchServerboundPayload.TYPE, UpdatePatchServerboundPayload.CODEC, (payload, context) -> {
                     if(context.player().level().getBlockEntity(payload.pos()) instanceof SFControllerBlockEntity e && context.player().level() instanceof ServerLevel serverLevel) {
-                        var newPatch = new Gson().fromJson(payload.graph(), PatchGraph.class);
+                        var newPatch = payload.graph();
 
                         var graph = Patchwork.UNIVERSE.getGraphWorld(serverLevel).getGraphForNode(new NodePos(payload.pos(), SFControllerNode.INSTANCE));
 
@@ -384,17 +379,21 @@ public class Patchwork {
                         var graph = Patchwork.UNIVERSE.getGraphWorld((ServerLevel) context.player().level()).getGraphForNode(new NodePos(payload.pos(), SFControllerNode.INSTANCE));
                         var configs = StorageConfiguration.getConfigurationsFromNetwork(graph);
 
+                        var total = configs.stream().mapToInt(c -> c.graphs.size()).sum();
+
                         for(var config : configs) {
                             if(config.graphs.size() >= config.maxGraphs) continue;
 
                             var patch = new PatchGraph(UUID.randomUUID());
-                            patch.name = "Patch #" + config.graphs.size();
+                            patch.name = "Patch #" + (total + 1);
                             config.graphs.add(patch);
                             e.setChanged();
 
+                            StorageConfiguration.syncToPlayer(configs, graph, (ServerLevel) context.player().level(), (ServerPlayer) context.player(), payload.pos());
+
                             ((ServerLevel) context.player().level()).getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
 
-                            StorageConfiguration.syncToPlayer(configs, graph, (ServerLevel) context.player().level(), (ServerPlayer) context.player(), payload.pos());
+                            break;
                         }
                     }
                 }
