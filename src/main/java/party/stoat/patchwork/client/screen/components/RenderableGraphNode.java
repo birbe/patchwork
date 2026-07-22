@@ -1,15 +1,22 @@
 package party.stoat.patchwork.client.screen.components;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec2;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import party.stoat.patchwork.Patchwork;
 import party.stoat.patchwork.client.screen.EditorScreen;
+import party.stoat.patchwork.network.EjectVirtualizedMachineServerboundPayload;
 import party.stoat.patchwork.patchgraph.NodeDescriptor;
 import party.stoat.patchwork.network.OpenRemoteMachineServerboundPayload;
+import party.stoat.patchwork.patchgraph.nodes.VirtualizedBlockNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +36,7 @@ public class RenderableGraphNode extends Renderable {
     List<Renderable> children = new ArrayList<>();
 
     private ImageButton openRemote;
+    private ImageButton ejectRemote;
 
     private static final int HEADER_HEIGHT = 20;
 
@@ -37,6 +45,8 @@ public class RenderableGraphNode extends Renderable {
     public HashMap<String, NodeIO> ports = new HashMap<>();
 
     boolean preview;
+
+    public static final Identifier VIRTUAL_NODE_IDENTIFIER = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual");
 
     public RenderableGraphNode(NodeDescriptor d, UUID u, boolean preview) {
         this.uuid = u;
@@ -48,15 +58,15 @@ public class RenderableGraphNode extends Renderable {
         header.offsetY = 5;
         children.add(header);
 
+        var inputs = new VerticalList<NodeIO>(new ArrayList<>(), 4, false, false);
+        var outputs = new VerticalList<>(new ArrayList<>(), 4, true, false);
+
         this.openRemote = new ImageButton(EditorScreen.MAGNIFYING_GLASS_TEXTURE, 16, 16, (btn, state) -> {
             ClientPacketDistributor.sendToServer(new OpenRemoteMachineServerboundPayload(uuid, state.controllerPos));
         });
 
         this.openRemote.paddingX = 3;
         this.openRemote.paddingY = 3;
-
-        var inputs = new VerticalList<NodeIO>(new ArrayList<>(), 4, false, false);
-        var outputs = new VerticalList<>(new ArrayList<>(), 4, true, false);
 
         inputs.width = d.inputs().stream().mapToInt(input -> EditorScreen.FONT.width(input.name())).max().orElse(0);
         outputs.width = d.outputs().stream().mapToInt(output -> EditorScreen.FONT.width(output.name())).max().orElse(0);
@@ -79,7 +89,21 @@ public class RenderableGraphNode extends Renderable {
             ports.put(o.key(), io);
         }
 
-        outputs.elements.add(this.openRemote);
+        if(this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER) || this.descriptor.identifier().equals(Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "interface"))) {
+            outputs.elements.add(this.openRemote);
+        }
+
+        if(this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER)) {
+            this.ejectRemote = new ImageButton(EditorScreen.EJECT_TEXTURE, 16, 16, (btn, state) -> {
+                BlockPos pos = new Gson().fromJson(this.descriptor.configuration(), new TypeToken<BlockPos>() {}.getType());
+                if(pos != null) {
+                    ClientPacketDistributor.sendToServer(new EjectVirtualizedMachineServerboundPayload(state.controllerPos, pos));
+                }
+            });
+            this.ejectRemote.paddingX = 3;
+            this.ejectRemote.paddingY = 3;
+            outputs.elements.add(this.ejectRemote);
+        }
 
         children.add(inputs);
         children.add(outputs);

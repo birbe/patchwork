@@ -6,6 +6,7 @@
     "AddCachedBlockToClientLevel",
     "ChunkMapTrackPlayerWatchingRemoteMachine",
     "ContainerInMachineLevelYupThatsValidYup",
+    "LevelAddVirtualDropField",
     "LevelChunkTickMustTickVirtualized",
     "ServerPlayerVirtualChunkTracker",
     "ShrinkWorlderBorder",

@@ -12,10 +12,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -24,6 +29,7 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -59,11 +65,8 @@ import party.stoat.patchwork.graphlib.SFCableNode;
 import party.stoat.patchwork.graphlib.SFControllerNode;
 import party.stoat.patchwork.graphlib.SFDriveNode;
 import party.stoat.patchwork.graphlib.SFInterfaceNode;
-import party.stoat.patchwork.virtual.LevelVirtualBlockCache;
+import party.stoat.patchwork.virtual.*;
 import party.stoat.patchwork.network.*;
-import party.stoat.patchwork.virtual.PlayerVirtualTrackedChunk;
-import party.stoat.patchwork.virtual.ServerSavedData;
-import party.stoat.patchwork.virtual.VirtualManager;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -199,8 +202,61 @@ public class Patchwork {
         public HashMap<UUID, PatchGraph> graphs;
     }
 
+    @SubscribeEvent
+    private void handleVirtualDroppedItem(EntityJoinLevelEvent event) {
+        if(event.getLevel() instanceof ServerLevel serverLevel && ((LevelVirtualDrops) serverLevel).patchwork$get() && event.getEntity() instanceof ItemEntity ie) {
+            ((LevelVirtualDrops) serverLevel).patchwork$addDrop(ie);
+            event.setCanceled(true);
+        }
+    }
+
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("1");
+
+        registrar.playToServer(
+                EjectVirtualizedMachineServerboundPayload.TYPE,
+                EjectVirtualizedMachineServerboundPayload.CODEC,
+                (payload, context) -> {
+                    if(context.player().level().getBlockEntity(payload.controllerPos()) instanceof SFControllerBlockEntity controller && context.player() instanceof ServerPlayer serverPlayer) {
+                        ServerLevel level = serverPlayer.level();
+                        var graph = Patchwork.UNIVERSE.getGraphWorld(serverPlayer.level()).getGraphForNode(new NodePos(payload.controllerPos(), SFControllerNode.INSTANCE));
+                        var configs = StorageConfiguration.getConfigurationsFromNetwork(graph);
+
+                        for(var config : configs) {
+                            if(config.virtualized.contains(payload.virtualPos())) {
+                                config.virtualized.remove(payload.virtualPos());
+
+                                ((LevelVirtualDrops) serverPlayer.level()).patchwork$set(true);
+
+                                BlockState bs = level.getBlockState(payload.virtualPos());
+                                BlockEntity be = level.getBlockEntity(payload.virtualPos());
+
+                                if(be != null) be.preRemoveSideEffects(payload.virtualPos(), bs);
+                                Block.dropResources(bs, (ServerLevel) level, payload.virtualPos(), be);
+
+                                level.setBlockAndUpdate(payload.virtualPos(), Blocks.AIR.defaultBlockState());
+
+//                                level.setBlock(payload.virtualPos(), Blocks.AIR.defaultBlockState(), 0);
+
+                                ((LevelVirtualDrops) serverPlayer.level()).patchwork$set(false);
+                                var drops = ((LevelVirtualDrops) serverPlayer.level()).patchwork$getDrops();
+
+
+                                for(var itemEntity : drops) {
+                                    level.addFreshEntity(new ItemEntity(level, context.player().getX(), context.player().getY(), context.player().getZ(), itemEntity.getItem()));
+                                }
+
+                                level.getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
+
+                                break;
+                            }
+                        }
+
+
+                    }
+                }
+        );
+
         registrar.playToClient(
                 CacheBlockStateClientboundPayload.TYPE,
                 CacheBlockStateClientboundPayload.CODEC,

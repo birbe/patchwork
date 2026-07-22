@@ -12,11 +12,8 @@ import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jspecify.annotations.Nullable;
 import party.stoat.patchwork.Patchwork;
-import party.stoat.patchwork.patchgraph.StorageConfiguration;
-import party.stoat.patchwork.patchgraph.PatchInstance;
+import party.stoat.patchwork.patchgraph.*;
 import party.stoat.patchwork.block.sf_controller.SFControllerBlockEntity;
-import party.stoat.patchwork.patchgraph.Node;
-import party.stoat.patchwork.patchgraph.NodeDescriptor;
 
 import java.util.UUID;
 
@@ -26,26 +23,6 @@ public class SFSystemPowerNode extends Node {
 
     public SFSystemPowerNode(UUID uuid, NodeDescriptor descriptor) {
         super(uuid, descriptor);
-    }
-
-    @Override
-    public @Nullable ResourceHandler<ChemicalResource> getChemicalHandler(ServerLevel level, NodeDescriptor.IO port) {
-        return null;
-    }
-
-    @Override
-    public @Nullable ResourceHandler<ItemResource> getItemHandler(ServerLevel level, NodeDescriptor.IO port) {
-        return null;
-    }
-
-    @Override
-    public @Nullable ResourceHandler<FluidResource> getFluidHandler(ServerLevel level, NodeDescriptor.IO port) {
-        return null;
-    }
-
-    @Override
-    public @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port) {
-        return null;
     }
 
     @Override
@@ -60,7 +37,7 @@ public class SFSystemPowerNode extends Node {
 
             var storage = controller.storage;
 
-            var foreignStorage = connectedNode.getEnergyHandler(level, foreignPort);
+            var foreignStorage = connectedNode.getEnergyHandler(level, foreignPort, patch);
 
             if(foreignStorage == null) continue;
 

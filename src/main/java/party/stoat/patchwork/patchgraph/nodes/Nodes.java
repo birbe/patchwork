@@ -14,10 +14,10 @@ public class Nodes {
 
     static {
 
-        register("sf_interface", ExternalStorageNode::new);
+        register("interface", InterfaceNode::new);
         register("virtual", VirtualizedBlockNode::new);
         register("patch_nodes/system_power", SFSystemPowerNode::new);
-
+        register("splitter", SplitterNode::new);
     }
 
     public static void register(String identifier, NodeConstructor constructor) {

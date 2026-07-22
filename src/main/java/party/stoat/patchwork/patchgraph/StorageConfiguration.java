@@ -24,6 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -40,6 +41,7 @@ import party.stoat.patchwork.block.sf_interface.SFInterface;
 import party.stoat.patchwork.graphlib.SFDriveNode;
 import party.stoat.patchwork.graphlib.SFInterfaceNode;
 import party.stoat.patchwork.network.SFControllerSyncClientboundPayload;
+import party.stoat.patchwork.patchgraph.nodes.InterfaceNode;
 import party.stoat.patchwork.virtual.ServerSavedData;
 
 import java.util.*;
@@ -47,6 +49,8 @@ import java.util.function.Function;
 
 public class StorageConfiguration {
 
+    private static final Identifier INTERFACE_IDENTIFIER = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "interface");
+    private static final Identifier VIRTUAL_IDENTIFIER = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual");
     public transient HashMap<UUID, PatchInstance> instances;
     public transient boolean initialized;
 
@@ -55,7 +59,7 @@ public class StorageConfiguration {
     }
 
     public List<PatchGraph> graphs;
-    public List<BlockPos> virtualized;
+    public HashSet<BlockPos> virtualized;
 
     public int maxVirtualized;
     public int maxGraphs;
@@ -73,19 +77,19 @@ public class StorageConfiguration {
 
     public StorageConfiguration(List<BlockPos> virtualized, int maxVirtualized, int maxGraphs, UUID id, List<PatchGraph> graphs) {
         this.instances = new HashMap<>();
-        this.virtualized = new ArrayList<>(virtualized);
+        this.virtualized = new HashSet<>(virtualized);
         this.maxVirtualized = maxVirtualized;
         this.maxGraphs = maxGraphs;
         this.uuid = id != null ? id : UUID.randomUUID();
         this.graphs = new ArrayList<>(graphs);
     }
 
-    public StorageConfiguration(UUID uuid) {
-        this.maxVirtualized = 16;
-        this.maxGraphs = 4;
+    public StorageConfiguration(UUID uuid, int maxGraphs, int maxVirtualized) {
+        this.maxGraphs = maxGraphs;
+        this.maxVirtualized = maxVirtualized;
         this.uuid = uuid;
         this.graphs = new ArrayList<>();
-        this.virtualized = new ArrayList<>();
+        this.virtualized = new HashSet<>();
         this.instances = new HashMap<>();
     }
 
@@ -102,7 +106,7 @@ public class StorageConfiguration {
     }
 
     public List<BlockPos> getVirtualized() {
-        return virtualized;
+        return virtualized.stream().toList();
     }
 
     static HashMap<Class<? extends BlockEntity>, BlockConfigurator> configurators = new HashMap<>();
@@ -121,7 +125,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityChemicalTank.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.UP)
@@ -130,7 +134,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.DOWN)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -147,7 +151,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityFluidTank.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.UP)
@@ -156,7 +160,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.DOWN)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -164,7 +168,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 AbstractFurnaceBlockEntity.class,
-                (config, block, formatter, _) ->
+                (config, block, formatter, _, i) ->
                         new NodeDescriptor(
                                 formatter.apply(block.getName().getString()),
                                 List.of(
@@ -174,7 +178,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.DOWN)
                         ),
                                 ARGB.color(255, 40, 40, 40),
-                                Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                                i,
                                 BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                                 config
                         )
@@ -197,7 +201,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityElectrolyticSeparator.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.NORTH),
@@ -208,7 +212,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Right", "right", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.EAST)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -228,7 +232,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityChemicalDissolutionChamber.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("Item In", "itemin", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
@@ -239,7 +243,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.SOUTH)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -254,7 +258,7 @@ public class StorageConfiguration {
                 .set(DataType.INPUT, Direction.UP)
                 .finish();
 
-        NodeDescriptorProvider electricMachineDescriptor = (config, block, formatter, _) -> new NodeDescriptor(
+        NodeDescriptorProvider electricMachineDescriptor = (config, block, formatter, _, i) -> new NodeDescriptor(
                 formatter.apply(block.getName().getString()),
                 List.of(
                         new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
@@ -264,7 +268,7 @@ public class StorageConfiguration {
                         new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.SOUTH)
                 ),
                 ARGB.color(255, 110, 100, 105),
-                Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                i,
                 BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                 config
         );
@@ -303,7 +307,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityFormulaicAssemblicator.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("Ingredients", "ingredients", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
@@ -313,7 +317,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Result", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.SOUTH)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -336,7 +340,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityChemicalWasher.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("Fluid In", "fluidin", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.WEST),
@@ -347,7 +351,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Chemical Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.SOUTH)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -369,7 +373,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 TileEntityChemicalCrystallizer.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.WEST),
@@ -379,7 +383,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.EAST)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -397,7 +401,7 @@ public class StorageConfiguration {
                 .set(DataType.INPUT, Direction.UP)
                 .finish();
 
-        NodeDescriptorProvider advancedElectricMachineDescriptor = (config, block, formatter, _) -> new NodeDescriptor(
+        NodeDescriptorProvider advancedElectricMachineDescriptor = (config, block, formatter, _, i) -> new NodeDescriptor(
                 formatter.apply(block.getName().getString()),
                 List.of(
                         new NodeDescriptor.IO("Item In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.WEST),
@@ -408,7 +412,7 @@ public class StorageConfiguration {
                         new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.SOUTH)
                 ),
                 ARGB.color(255, 110, 100, 105),
-                Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                i,
                 BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                 config
         );
@@ -435,7 +439,7 @@ public class StorageConfiguration {
 
         descriptorProvider.put(
                 ChestBlockEntity.class,
-                (config, block, formatter, _) -> new NodeDescriptor(
+                (config, block, formatter, _, i) -> new NodeDescriptor(
                         formatter.apply(block.getName().getString()),
                         List.of(
                                 new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.UP)
@@ -444,7 +448,7 @@ public class StorageConfiguration {
                                 new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.DOWN)
                         ),
                         ARGB.color(255, 110, 100, 105),
-                        Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                        i,
                         BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
                         config
                 )
@@ -459,7 +463,7 @@ public class StorageConfiguration {
 
     public interface NodeDescriptorProvider {
 
-        NodeDescriptor apply(String posConfig, Block state, Function<String, String> formatter, BlockEntity entity);
+        NodeDescriptor apply(String config, Block state, Function<String, String> formatter, BlockEntity entity, Identifier identifier);
 
     }
 
@@ -473,15 +477,13 @@ public class StorageConfiguration {
         output.putString("graphs", new Gson().toJson(this.graphs));
     }
 
-    public NodeDescriptor getDescriptorForBlock(ServerLevel level, BlockPos pos, Function<String, String> formatter, ServerPlayer player) {
+    public NodeDescriptor getDescriptorForBlock(ServerLevel level, BlockPos pos, Function<String, String> formatter, ServerPlayer player, Identifier i, String config) {
         BlockState state = level.getBlockState(pos);
         BlockEntity entity = level.getBlockEntity(pos);
 
-        var posConfiguration = new Gson().toJson(pos);
-
         for (var nodeDescriptorClass : descriptorProvider.keySet()) {
             if (nodeDescriptorClass.isInstance(entity)) {
-                return descriptorProvider.get(nodeDescriptorClass).apply(new Gson().toJson(pos), state.getBlock(), formatter, entity);
+                return descriptorProvider.get(nodeDescriptorClass).apply(config, state.getBlock(), formatter, entity, i);
             }
         }
 
@@ -497,9 +499,9 @@ public class StorageConfiguration {
                             new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.UP)
                     ),
                     ARGB.color(255, 110, 100, 105),
-                    Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                    i,
                     BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(state.getBlock())),
-                    posConfiguration
+                    config
             );
         }
 
@@ -510,13 +512,41 @@ public class StorageConfiguration {
                 List.of(
                 ),
                 ARGB.color(255, 110, 100, 105),
-                Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual"),
+                i,
                 BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(state.getBlock())),
-                posConfiguration
+                config
         );
     }
 
     public static record NodeCategory(String name, List<NodeDescriptor> nodes) {
+    }
+
+    public static boolean isStorageItem(Item item) {
+        return item == Patchwork.T1_VIRTUAL_STORAGE.get() || item == Patchwork.T2_VIRTUAL_STORAGE.get() || item == Patchwork.T3_VIRTUAL_STORAGE.get();
+    }
+
+    public static int getStorageMaxGraphs(Item item) {
+        if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
+            return 2;
+        } else if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
+            return 8;
+        } else if(item == Patchwork.T3_VIRTUAL_STORAGE.get()) {
+            return 32;
+        }
+
+        return 0;
+    }
+
+    public static int getStorageMaxVirt(Item item) {
+        if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
+            return 4;
+        } else if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
+            return 32;
+        } else if(item == Patchwork.T3_VIRTUAL_STORAGE.get()) {
+            return 128;
+        }
+
+        return 0;
     }
 
     public static List<StorageConfiguration> getConfigurationsFromNetwork(BlockGraph graph) {
@@ -525,7 +555,7 @@ public class StorageConfiguration {
         for (var node : graph.getNodes().toList()) {
             if (node.getNode() instanceof SFDriveNode && node.getBlockEntity() instanceof SFDriveBlockEntity drive) {
                 for(var item : drive.slots) {
-                    if(item.getItem() == Patchwork.T1_VIRTUAL_STORAGE.get()) {
+                    if(isStorageItem(item.getItem())) {
                         SFStorageDriveData config = item.get(Patchwork.STORAGE_MODULE_DATA_COMPONENT.get());
 
                         ServerSavedData data = graph.getGraphView().getWorld().getServer().getDataStorage().computeIfAbsent(ServerSavedData.ID);
@@ -538,7 +568,7 @@ public class StorageConfiguration {
                                     config
                             );
 
-                            data.configs.put(config.id(), new StorageConfiguration(config.id()));
+                            data.configs.put(config.id(), new StorageConfiguration(config.id(), getStorageMaxGraphs(item.getItem()), getStorageMaxVirt(item.getItem())));
                             data.setDirty();
                         }
 
@@ -569,16 +599,18 @@ public class StorageConfiguration {
 
         for(var config : configs) {
             for (var virtualizedPos : config.virtualized) {
-                virtualizedCategory.add(config.configureBlockAndGetDescriptor(level, player, virtualizedPos, s -> s));
+                var blockPosConfig = new Gson().toJson(virtualizedPos);
+                virtualizedCategory.add(config.configureBlockAndGetDescriptor(level, player, virtualizedPos, s -> s, VIRTUAL_IDENTIFIER, blockPosConfig));
             }
 
             for (var node : graph.getNodes().toList()) {
                 if (node.getNode() instanceof SFInterfaceNode) {
                     var facing = node.getBlockState().getValue(SFInterface.FACING);
-
                     var proxiedPos = node.getBlockPos().relative(facing);
 
-                    interfaceCategory.add(config.configureBlockAndGetDescriptor(level, player, proxiedPos, s -> "Interface (" + s + ")"));
+                    var interfaceConfig = new Gson().toJson(new InterfaceNode.Configuration(node.getBlockPos(), facing));
+
+                    interfaceCategory.add(config.configureBlockAndGetDescriptor(level, player, proxiedPos, s -> "Interface (" + s + ")", INTERFACE_IDENTIFIER, interfaceConfig));
                 }
             }
         }
@@ -586,7 +618,7 @@ public class StorageConfiguration {
         return categories;
     }
 
-    private NodeDescriptor configureBlockAndGetDescriptor(ServerLevel level, ServerPlayer player, BlockPos proxiedPos, Function<String, String> formatter) {
+    private NodeDescriptor configureBlockAndGetDescriptor(ServerLevel level, ServerPlayer player, BlockPos proxiedPos, Function<String, String> formatter, Identifier identifier, String config) {
         BlockState state = level.getBlockState(proxiedPos);
         BlockEntity entity = level.getBlockEntity(proxiedPos);
 
@@ -597,7 +629,7 @@ public class StorageConfiguration {
             }
         }
 
-        return getDescriptorForBlock(level, proxiedPos, formatter, player);
+        return getDescriptorForBlock(level, proxiedPos, formatter, player, identifier, config);
     }
 
     public void initializeIfNeeded(MinecraftServer server) {

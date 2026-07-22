@@ -16,11 +16,8 @@ import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jspecify.annotations.Nullable;
 import party.stoat.patchwork.Patchwork;
-import party.stoat.patchwork.patchgraph.StorageConfiguration;
-import party.stoat.patchwork.patchgraph.PatchInstance;
+import party.stoat.patchwork.patchgraph.*;
 import party.stoat.patchwork.block.sf_controller.SFControllerBlockEntity;
-import party.stoat.patchwork.patchgraph.Node;
-import party.stoat.patchwork.patchgraph.NodeDescriptor;
 
 import java.util.UUID;
 
@@ -35,28 +32,28 @@ public class VirtualizedBlockNode extends Node {
     }
 
     @Override
-    public @Nullable ResourceHandler<ChemicalResource> getChemicalHandler(ServerLevel level, NodeDescriptor.IO port) {
+    public @Nullable ResourceHandler<ChemicalResource> getChemicalHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
         return level.getCapability(mekanism.common.capabilities.Capabilities.CHEMICAL.block(), this.proxyPos, port.direction());
     }
 
     @Override
-    public @Nullable ResourceHandler<ItemResource> getItemHandler(ServerLevel level, NodeDescriptor.IO port) {
+    public @Nullable ResourceHandler<ItemResource> getItemHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
         return level.getCapability(Capabilities.Item.BLOCK, this.proxyPos, port.direction());
     }
 
     @Override
-    public @Nullable ResourceHandler<FluidResource> getFluidHandler(ServerLevel level, NodeDescriptor.IO port) {
+    public @Nullable ResourceHandler<FluidResource> getFluidHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
         return level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction());
     }
 
     @Override
-    public @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port) {
+    public @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
         if(this.proxyPos == null) return null;
         if(level == null) return null;
         return level.getCapability(Capabilities.Energy.BLOCK, this.proxyPos, port.direction());
@@ -78,7 +75,7 @@ public class VirtualizedBlockNode extends Node {
             switch(port.d().d()) {
                 case Chemical -> {
                     var storage = level.getCapability(mekanism.common.capabilities.Capabilities.CHEMICAL.block(), this.proxyPos, port.direction());
-                    var foreignStorage = connectedNode.getChemicalHandler(level, foreignPort);
+                    var foreignStorage = connectedNode.getChemicalHandler(level, foreignPort, patchInstance);
 
                     if(foreignStorage == null) continue;
 
@@ -124,14 +121,23 @@ public class VirtualizedBlockNode extends Node {
                     if(storage != null) try(Transaction transaction = Transaction.open(context)) {
 
                         for(int i=0;i<storage.size();i++) {
-                            try(Transaction inner = Transaction.open(transaction)) {
+                            try(Transaction actualAttempt = Transaction.open(transaction)) {
+                                var toExtract = 0;
+
                                 var resource = storage.getResource(i);
                                 if(resource.isEmpty()) continue;
 
-                                var extracted = storage.extract(resource, 1, inner);
-                                var foreignStorage = connectedNode.getItemHandler(level, foreignPort);
-                                var inserted = foreignStorage.insert(resource, extracted, inner);
-                                if(inserted == extracted) inner.commit();
+                                var foreignStorage = connectedNode.getItemHandler(level, foreignPort, patchInstance);
+                                if(foreignStorage == null) continue;
+
+                                try(Transaction inner = Transaction.open(actualAttempt)) {
+                                    toExtract = storage.extract(resource, 9999, inner);
+                                }
+
+                                var inserted = foreignStorage.insert(resource, toExtract, actualAttempt);
+                                var extracted = storage.extract(resource, inserted, actualAttempt);
+
+                                if(inserted == extracted) actualAttempt.commit();
                             }
                         }
 
@@ -142,20 +148,27 @@ public class VirtualizedBlockNode extends Node {
                 }
                 case Fluid -> {
                     var storage = level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction());
-                    var foreignStorage = connectedNode.getFluidHandler(level, foreignPort);
-
-                    if(foreignStorage == null) continue;
 
                     if(storage != null) try(Transaction transaction = Transaction.open(context)) {
 
                         for(int i=0;i<storage.size();i++) {
-                            try(Transaction inner = Transaction.open(transaction)) {
+                            try(Transaction actualAttempt = Transaction.open(transaction)) {
+                                var toExtract = 0;
+
                                 var resource = storage.getResource(i);
                                 if(resource.isEmpty()) continue;
 
-                                var extracted = storage.extract(resource, 1000, inner);
-                                var inserted = foreignStorage.insert(resource, extracted, inner);
-                                if(inserted == extracted) inner.commit();
+                                var foreignStorage = connectedNode.getFluidHandler(level, foreignPort, patchInstance);
+                                if(foreignStorage == null) continue;
+
+                                try(Transaction inner = Transaction.open(actualAttempt)) {
+                                    toExtract = storage.extract(resource, 9999, inner);
+                                }
+
+                                var inserted = foreignStorage.insert(resource, toExtract, actualAttempt);
+                                var extracted = storage.extract(resource, inserted, actualAttempt);
+
+                                if(inserted == extracted) actualAttempt.commit();
                             }
                         }
 

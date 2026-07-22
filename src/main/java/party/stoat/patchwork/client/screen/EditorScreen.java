@@ -29,6 +29,7 @@ import party.stoat.patchwork.patchgraph.PatchGraph;
 import party.stoat.patchwork.patchgraph.nodes.SFSystemPowerNode;
 import party.stoat.patchwork.network.CreatePatchServerboundPayload;
 import party.stoat.patchwork.network.UpdatePatchServerboundPayload;
+import party.stoat.patchwork.patchgraph.nodes.SplitterNode;
 
 import java.util.*;
 
@@ -38,6 +39,7 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
 
     private static final Identifier CONTAINER_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/container/inventory.png");
     public static final Identifier MAGNIFYING_GLASS_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/magnifying_glass.png");
+    public static final Identifier EJECT_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/eject.png");
 
     private static final int CONTAINER_WIDTH = 175;
     private static final int CONTAINER_HEIGHT = 90;
@@ -257,6 +259,22 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
                                 ),
                                 NodeDescriptor.DataType.Energy.color,
                                 SFSystemPowerNode.IDENTIFIER,
+                                ""
+                        ),
+                        UUID.randomUUID(),
+                        true
+                ),
+                new RenderableGraphNode(
+                        new NodeDescriptor(
+                                "Splitter",
+                                List.of(
+                                        new NodeDescriptor.IO("Items in", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), null)
+                                ),
+                                List.of(
+                                        new NodeDescriptor.IO("Items out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, true), null)
+                                ),
+                                NodeDescriptor.DataType.Item.color,
+                                SplitterNode.IDENTIFIER,
                                 ""
                         ),
                         UUID.randomUUID(),

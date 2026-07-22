@@ -33,15 +33,25 @@ public abstract class Node {
         return this.uuid;
     }
 
-    public abstract @Nullable ResourceHandler<ChemicalResource> getChemicalHandler(ServerLevel level, NodeDescriptor.IO port);
+    public @Nullable ResourceHandler<ChemicalResource> getChemicalHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
+        return null;
+    }
 
-    public abstract @Nullable ResourceHandler<ItemResource> getItemHandler(ServerLevel level, NodeDescriptor.IO port);
+    public @Nullable ResourceHandler<ItemResource> getItemHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
+        return null;
+    }
 
-    public abstract @Nullable ResourceHandler<FluidResource> getFluidHandler(ServerLevel level, NodeDescriptor.IO port);
+    public @Nullable ResourceHandler<FluidResource> getFluidHandler(ServerLevel level, NodeDescriptor.IO port,PatchInstance graph) {
+        return null;
+    }
 
-    public abstract @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port);
+    public @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
+        return null;
+    }
 
-    public abstract void tick(StorageConfiguration config, PatchInstance patch, ServerLevel level, BlockGraph network, TransactionContext context, SFControllerBlockEntity controller);
+    public void tick(StorageConfiguration config, PatchInstance patch, ServerLevel level, BlockGraph network, TransactionContext context, SFControllerBlockEntity controller) {
+
+    }
 
     public NodeDescriptor getDescriptor() {
         return this.descriptor;
