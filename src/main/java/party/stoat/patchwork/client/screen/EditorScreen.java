@@ -84,10 +84,10 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
         public Many graphNodes = new Many(new ArrayList<>());
         public HashMap<UUID, RenderableGraphNode> graphNodeToRenderableMap = new HashMap<>();
 
-        public List<PatchGraph> patchGraphs = new ArrayList<>();
-        public List<RenderableGraphNode> selectedNodes = new ArrayList<>();
+        public ArrayList<PatchGraph> patchGraphs = new ArrayList<>();
+        public ArrayList<RenderableGraphNode> selectedNodes = new ArrayList<>();
 
-        public List<StorageConfiguration.NodeCategory> serverProvidedDescriptors = new ArrayList<>();
+        public ArrayList<StorageConfiguration.NodeCategory> serverProvidedDescriptors = new ArrayList<>();
 
         public void markDirty() {
             this.editorDirty = true;

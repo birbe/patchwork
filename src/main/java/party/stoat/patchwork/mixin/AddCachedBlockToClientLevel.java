@@ -54,6 +54,8 @@ abstract class AddCachedBlockToClientLevel implements LevelVirtualBlockCache {
 
         if(nbt.isPresent()) {
             entity = BlockEntity.loadStatic(blockPos, state, nbt.get(), this.registryAccess());
+            entity.setLevel((Level) (Object) this);
+            entity.setBlockState(state);
         }
 
         var chunk = new VirtualSingleChunk(new ChunkPos(blockPos.getX() / 16, blockPos.getZ() / 16), (Level) (Object) this, blockPos, state, entity);

@@ -57,6 +57,7 @@ import party.stoat.patchwork.block.*;
 import party.stoat.patchwork.block.sf_controller.SFControllerBlockEntity;
 import party.stoat.patchwork.block.sf_controller.SFControllerMenu;
 import party.stoat.patchwork.client.screen.EditorScreen;
+import party.stoat.patchwork.item.VirtualStorageItem;
 import party.stoat.patchwork.patchgraph.PatchInstance;
 import party.stoat.patchwork.patchgraph.StorageConfiguration;
 import party.stoat.patchwork.patchgraph.nodes.VirtualizedBlockNode;
@@ -105,9 +106,9 @@ public class Patchwork {
     public static final DeferredItem<Item> MEDIATION_CORE = ITEMS.registerSimpleItem("mediation_core", p -> p);
     public static final DeferredItem<Item> NEGOTIATION_CORE = ITEMS.registerSimpleItem("negotiation_core", p -> p);
 
-    public static final DeferredItem<Item> T1_VIRTUAL_STORAGE = ITEMS.registerSimpleItem("t1_virtual_storage", p -> p.stacksTo(1));
-    public static final DeferredItem<Item> T2_VIRTUAL_STORAGE = ITEMS.registerSimpleItem("t2_virtual_storage", p -> p.stacksTo(1));
-    public static final DeferredItem<Item> T3_VIRTUAL_STORAGE = ITEMS.registerSimpleItem("t3_virtual_storage", p -> p.stacksTo(1).component(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true));
+    public static final DeferredItem<Item> T1_VIRTUAL_STORAGE = ITEMS.registerItem("t1_virtual_storage", props -> new VirtualStorageItem(props, 1, 4));
+    public static final DeferredItem<Item> T2_VIRTUAL_STORAGE = ITEMS.registerItem("t2_virtual_storage", props -> new VirtualStorageItem(props, 2, 16));
+    public static final DeferredItem<Item> T3_VIRTUAL_STORAGE = ITEMS.registerItem("t3_virtual_storage", p -> new VirtualStorageItem(p.stacksTo(1).component(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true), 8, 64));
 
     public static final DeferredItem<Item> T1_STORAGE_CELL = ITEMS.registerSimpleItem("t1_storage_cell", p -> p);
     public static final DeferredItem<Item> T2_STORAGE_CELL = ITEMS.registerSimpleItem("t2_storage_cell", p -> p);
@@ -195,6 +196,14 @@ public class Patchwork {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
+    public static boolean isPosTotallyEffedTheFuckUp(double x, double z) {
+        return Math.abs(x) > 29999980.0D || Math.abs(z) > 29999980.0D;
+    }
+
+    public static boolean isPosTotallyEffedTheFuckUp(int x, int z) {
+        return Math.abs(x) > 29999980 || Math.abs(z) > 29999980;
+    }
+
     static class Graphs {
         public HashMap<UUID, PatchGraph> graphs;
     }
@@ -243,7 +252,7 @@ public class Patchwork {
                                     level.addFreshEntity(new ItemEntity(level, context.player().getX(), context.player().getY(), context.player().getZ(), itemEntity.getItem()));
                                 }
 
-                                level.getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
+                                level.getServer().getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
 
                                 break;
                             }
@@ -272,7 +281,7 @@ public class Patchwork {
                 SFControllerSyncClientboundPayload.TYPE, SFControllerSyncClientboundPayload.CODEC, (payload, context) -> {
                     var mc = Minecraft.getInstance();
 
-                    if(mc.gui.screen() instanceof EditorScreen editor) {
+                    if(mc.screen instanceof EditorScreen editor) {
                         UUID currentGraphId = null;
                         HashMap<UUID, Vec2> oldPositions = null;
 
@@ -283,7 +292,7 @@ public class Patchwork {
 
                         editor.state.controllerPos = payload.controllerPos();
                         editor.state.patchGraphs = new ArrayList<>(payload.patches());
-                        editor.state.serverProvidedDescriptors = payload.nodeDescriptors();
+                        editor.state.serverProvidedDescriptors = new ArrayList<>(payload.nodeDescriptors());
 
                         if(editor.state.getCurrentGraph() == null && !editor.state.patchGraphs.isEmpty()) editor.setGraph(editor.state.patchGraphs.get(0));
 
@@ -365,7 +374,7 @@ public class Patchwork {
                                 config.instances.put(newPatch.graphId, instance);
                                 instance.initialize(context.player().level().getServer());
 
-                                serverLevel.getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
+                                serverLevel.getServer().getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
 
                                 StorageConfiguration.syncToPlayer(configs, graph, serverLevel, (ServerPlayer) context.player(), payload.pos());
                             }
@@ -391,7 +400,7 @@ public class Patchwork {
 
                             StorageConfiguration.syncToPlayer(configs, graph, (ServerLevel) context.player().level(), (ServerPlayer) context.player(), payload.pos());
 
-                            ((ServerLevel) context.player().level()).getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
+                            ((ServerLevel) context.player().level()).getServer().getDataStorage().computeIfAbsent(ServerSavedData.ID).setDirty();
 
                             break;
                         }

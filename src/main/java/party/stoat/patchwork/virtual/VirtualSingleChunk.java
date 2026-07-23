@@ -6,18 +6,16 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.PalettedContainerFactory;
-import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.ticks.ScheduledTick;
 import net.minecraft.world.ticks.TickContainerAccess;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -32,7 +30,7 @@ public class VirtualSingleChunk extends LevelChunk {
     private BlockState theState;
     private @Nullable BlockEntity theEntity;
 
-    public VirtualSingleChunk(ChunkPos chunkPos, Level realLevel, BlockPos pos, BlockState state, BlockEntity entity) {
+    public VirtualSingleChunk(ChunkPos chunkPos, Level realLevel, BlockPos pos, BlockState state, @Nullable BlockEntity entity) {
         super(realLevel, chunkPos);
 
         this.blockPos = pos;
@@ -41,7 +39,7 @@ public class VirtualSingleChunk extends LevelChunk {
     }
 
     @Override
-    public @Nullable BlockState setBlockState(BlockPos blockPos, BlockState blockState, @Block.UpdateFlags int i) {
+    public @Nullable BlockState setBlockState(@NonNull BlockPos blockPos, @NonNull BlockState blockState, @Block.UpdateFlags int i) {
         if(blockPos != this.blockPos) return null;
 
         this.theState = blockState;
@@ -50,39 +48,69 @@ public class VirtualSingleChunk extends LevelChunk {
     }
 
     @Override
-    public void setBlockEntity(BlockEntity blockEntity) {
-        if(blockPos != this.blockPos) return;
+    public void setBlockEntity(@NonNull BlockEntity blockEntity) {
+        if(!blockEntity.getBlockPos().equals(this.blockPos)) return;
 
         this.theEntity = blockEntity;
     }
 
     @Override
-    public void addEntity(Entity entity) {
+    public void addEntity(@NonNull Entity entity) {
     }
 
     @Override
-    public ChunkStatus getPersistedStatus() {
+    public @NonNull ChunkStatus getPersistedStatus() {
+        return ChunkStatus.FULL;
+    }
+
+    @Override
+    public void removeBlockEntity(@NonNull BlockPos blockPos) {
+
+    }
+
+    @Override
+    public @Nullable CompoundTag getBlockEntityNbtForSaving(@NonNull BlockPos blockPos, HolderLookup.@NonNull Provider provider) {
         return null;
     }
 
     @Override
-    public void removeBlockEntity(BlockPos blockPos) {
+    public @NonNull TickContainerAccess<Block> getBlockTicks() {
+        return new TickContainerAccess<Block>() {
+            @Override
+            public void schedule(@NonNull ScheduledTick<Block> scheduledTick) {
 
-    }
+            }
 
-    @Override
-    public @Nullable CompoundTag getBlockEntityNbtForSaving(BlockPos blockPos, HolderLookup.Provider provider) {
-        return null;
-    }
+            @Override
+            public boolean hasScheduledTick(@NonNull BlockPos blockPos, @NonNull Block block) {
+                return false;
+            }
 
-    @Override
-    public TickContainerAccess<Block> getBlockTicks() {
-        return null;
+            @Override
+            public int count() {
+                return 0;
+            }
+        };
     }
 
     @Override
     public @NonNull TickContainerAccess<Fluid> getFluidTicks() {
-        return null;
+        return new TickContainerAccess<Fluid>() {
+            @Override
+            public void schedule(@NonNull ScheduledTick<Fluid> scheduledTick) {
+
+            }
+
+            @Override
+            public boolean hasScheduledTick(@NonNull BlockPos blockPos, @NonNull Fluid fluid) {
+                return false;
+            }
+
+            @Override
+            public int count() {
+                return 0;
+            }
+        };
     }
 
     @Override
@@ -96,7 +124,7 @@ public class VirtualSingleChunk extends LevelChunk {
     }
 
     @Override
-    public <T extends BlockEntity> Optional<T> getBlockEntity(BlockPos pos, BlockEntityType<T> type) {
+    public <T extends BlockEntity> @NonNull Optional<T> getBlockEntity(@NonNull BlockPos pos, @NonNull BlockEntityType<T> type) {
         var be = this.getBlockEntity(pos);
 
         if(be == null) return Optional.empty();
@@ -105,17 +133,17 @@ public class VirtualSingleChunk extends LevelChunk {
     }
 
     @Override
-    public @Nullable BlockEntity getBlockEntity(BlockPos pos, EntityCreationType creationType) {
+    public @Nullable BlockEntity getBlockEntity(@NonNull BlockPos pos, @NonNull EntityCreationType creationType) {
         return this.getBlockEntity(pos);
     }
 
     @Override
     public @NonNull BlockState getBlockState(BlockPos blockPos) {
-        return blockPos.equals(this.blockPos) ? this.theState : null;
+        return blockPos.equals(this.blockPos) ? this.theState : Blocks.AIR.defaultBlockState();
     }
 
     @Override
-    public @NonNull FluidState getFluidState(BlockPos blockPos) {
+    public @NonNull FluidState getFluidState(@NonNull BlockPos blockPos) {
         return this.realLevel.getFluidState(blockPos);
     }
 }

@@ -52,8 +52,8 @@ public class SFController extends BaseEntityBlock implements SFNetworkConnectabl
     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
         super.neighborChanged(state, level, pos, block, orientation, movedByPiston);
 
-        if(level.getBlockEntity(pos) instanceof SFControllerBlockEntity e) {
-
+        if(level instanceof ServerLevel serverLevel) {
+            Patchwork.UNIVERSE.getGraphWorld(serverLevel).updateNodes(pos);
         }
     }
 

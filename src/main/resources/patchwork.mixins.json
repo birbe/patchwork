@@ -6,11 +6,14 @@
     "AddCachedBlockToClientLevel",
     "ChunkMapTrackPlayerWatchingRemoteMachine",
     "ContainerInMachineLevelYupThatsValidYup",
+    "DontCloseContainer",
+    "FuckUpTheDistances",
     "LevelAddVirtualDropField",
     "LevelChunkTickMustTickVirtualized",
     "ServerPlayerVirtualChunkTracker",
     "ShrinkWorlderBorder",
-    "UpdateClientWhenVirtualizedServerBlockStateChanges"
+    "UpdateClientWhenVirtualizedServerBlockStateChanges",
+    "YesThePlayerIsInRange"
   ],
   "injectors": {
     "defaultRequire": 1

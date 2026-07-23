@@ -7,7 +7,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import mekanism.common.lib.transmitter.TransmissionType;
 import mekanism.common.tile.TileEntityChemicalTank;
 import mekanism.common.tile.TileEntityFluidTank;
-import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.factory.TileEntityItemStackChemicalToItemStackFactory;
 import mekanism.common.tile.factory.TileEntityItemStackToItemStackFactory;
 import mekanism.common.tile.machine.*;
@@ -22,7 +21,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ARGB;
-import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -31,15 +29,17 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.network.PacketDistributor;
 import party.stoat.patchwork.Patchwork;
-import party.stoat.patchwork.block.MekanismConfigurator;
+import party.stoat.patchwork.compat.MekanismConfigurator;
 import party.stoat.patchwork.block.SFStorageDriveData;
 import party.stoat.patchwork.block.sf_drive.SFDriveBlockEntity;
 import party.stoat.patchwork.block.sf_interface.SFInterface;
 import party.stoat.patchwork.graphlib.SFDriveNode;
 import party.stoat.patchwork.graphlib.SFInterfaceNode;
+import party.stoat.patchwork.item.VirtualStorageItem;
 import party.stoat.patchwork.network.SFControllerSyncClientboundPayload;
 import party.stoat.patchwork.patchgraph.nodes.InterfaceNode;
 import party.stoat.patchwork.virtual.ServerSavedData;
@@ -109,62 +109,12 @@ public class StorageConfiguration {
         return virtualized.stream().toList();
     }
 
-    static HashMap<Class<? extends BlockEntity>, BlockConfigurator> configurators = new HashMap<>();
-    static HashMap<Class<? extends BlockEntity>, NodeDescriptorProvider> descriptorProvider = new HashMap<>();
+    public static HashMap<Class<? extends BlockEntity>, BlockConfigurator> configurators = new HashMap<>();
+    public static HashMap<Class<? extends BlockEntity>, NodeDescriptorProvider> descriptorProvider = new HashMap<>();
     static HashMap<Class<?>, NodeDescriptorProvider> genericDescriptorProvider = new HashMap<>();
 
     static {
-        configurators.put(
-                TileEntityChemicalTank.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.CHEMICAL)
-                        .set(DataType.INPUT, Direction.UP)
-                        .set(DataType.OUTPUT, Direction.DOWN)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityChemicalTank.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.DOWN)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
-
-        configurators.put(
-                TileEntityFluidTank.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.FLUID)
-                        .set(DataType.INPUT, Direction.UP)
-                        .set(DataType.OUTPUT, Direction.DOWN)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityFluidTank.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.DOWN)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
+        if(ModList.get().isLoaded("mekanism")) MekanismConfigurator.init();
 
         descriptorProvider.put(
                 AbstractFurnaceBlockEntity.class,
@@ -184,259 +134,6 @@ public class StorageConfiguration {
                         )
         );
 
-        configurators.put(
-                TileEntityElectrolyticSeparator.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.CHEMICAL)
-                        .set(DataType.OUTPUT_1, Direction.WEST)
-                        .set(DataType.OUTPUT_2, Direction.EAST)
-                        .finish()
-                        .config(TransmissionType.FLUID)
-                        .set(DataType.INPUT, Direction.NORTH)
-                        .finish()
-                        .config(TransmissionType.ENERGY)
-                        .set(DataType.INPUT, Direction.UP)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityElectrolyticSeparator.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.NORTH),
-                                new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Left", "left", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.WEST),
-                                new NodeDescriptor.IO("Right", "right", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.EAST)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
-
-        configurators.put(
-                TileEntityChemicalDissolutionChamber.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.CHEMICAL)
-                        .set(DataType.INPUT, Direction.UP)
-                        .set(DataType.OUTPUT, Direction.SOUTH)
-                        .finish()
-                        .config(TransmissionType.ITEM)
-                        .set(DataType.INPUT, Direction.NORTH)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityChemicalDissolutionChamber.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("Item In", "itemin", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
-                                new NodeDescriptor.IO("Chemical In", "chemin", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.UP),
-                                new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.SOUTH)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
-
-        BlockConfigurator electricMachineConfigurator = new MekanismConfigurator()
-                .config(TransmissionType.ITEM)
-                .set(DataType.INPUT, Direction.NORTH)
-                .set(DataType.OUTPUT, Direction.SOUTH)
-                .finish()
-                .config(TransmissionType.ENERGY)
-                .set(DataType.INPUT, Direction.UP)
-                .finish();
-
-        NodeDescriptorProvider electricMachineDescriptor = (config, block, formatter, _, i) -> new NodeDescriptor(
-                formatter.apply(block.getName().getString()),
-                List.of(
-                        new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
-                        new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                ),
-                List.of(
-                        new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.SOUTH)
-                ),
-                ARGB.color(255, 110, 100, 105),
-                i,
-                BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                config
-        );
-
-        configurators.put(
-                TileEntityElectricMachine.class,
-                electricMachineConfigurator
-        );
-
-        configurators.put(
-                TileEntityItemStackToItemStackFactory.class,
-                electricMachineConfigurator
-        );
-
-        descriptorProvider.put(
-                TileEntityElectricMachine.class,
-                electricMachineDescriptor
-        );
-
-        descriptorProvider.put(
-                TileEntityItemStackToItemStackFactory.class,
-                electricMachineDescriptor
-        );
-
-        configurators.put(
-                TileEntityFormulaicAssemblicator.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.ITEM)
-                        .set(DataType.INPUT, Direction.NORTH)
-                        .set(DataType.OUTPUT, Direction.SOUTH)
-                        .finish()
-                        .config(TransmissionType.ENERGY)
-                        .set(DataType.INPUT, Direction.UP)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityFormulaicAssemblicator.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("Ingredients", "ingredients", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH),
-                                new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Result", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.SOUTH)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
-
-        configurators.put(
-                TileEntityChemicalWasher.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.CHEMICAL)
-                        .set(DataType.INPUT, Direction.EAST)
-                        .set(DataType.OUTPUT, Direction.SOUTH)
-                        .finish()
-                        .config(TransmissionType.FLUID)
-                        .set(DataType.INPUT, Direction.WEST)
-                        .finish()
-                        .config(TransmissionType.ENERGY)
-                        .set(DataType.INPUT, Direction.UP)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityChemicalWasher.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("Fluid In", "fluidin", new NodeDescriptor.Data(NodeDescriptor.DataType.Fluid, false), Direction.WEST),
-                                new NodeDescriptor.IO("Chemical In", "chemicalin", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.EAST),
-                                new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Chemical Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.SOUTH)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
-
-        configurators.put(
-                TileEntityChemicalCrystallizer.class,
-                new MekanismConfigurator()
-                        .config(TransmissionType.CHEMICAL)
-                        .set(DataType.INPUT, Direction.WEST)
-                        .finish()
-                        .config(TransmissionType.ITEM)
-                        .set(DataType.OUTPUT, Direction.EAST)
-                        .finish()
-                        .config(TransmissionType.ENERGY)
-                        .set(DataType.INPUT, Direction.UP)
-                        .finish()
-        );
-
-        descriptorProvider.put(
-                TileEntityChemicalCrystallizer.class,
-                (config, block, formatter, _, i) -> new NodeDescriptor(
-                        formatter.apply(block.getName().getString()),
-                        List.of(
-                                new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.WEST),
-                                new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                        ),
-                        List.of(
-                                new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.EAST)
-                        ),
-                        ARGB.color(255, 110, 100, 105),
-                        i,
-                        BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                        config
-                )
-        );
-
-        BlockConfigurator advancedElectricMachineConfigurator = new MekanismConfigurator()
-                .config(TransmissionType.CHEMICAL)
-                .set(DataType.INPUT, Direction.EAST)
-                .finish()
-                .config(TransmissionType.ITEM)
-                .set(DataType.INPUT, Direction.WEST)
-                .set(DataType.OUTPUT, Direction.SOUTH)
-                .finish()
-                .config(TransmissionType.ENERGY)
-                .set(DataType.INPUT, Direction.UP)
-                .finish();
-
-        NodeDescriptorProvider advancedElectricMachineDescriptor = (config, block, formatter, _, i) -> new NodeDescriptor(
-                formatter.apply(block.getName().getString()),
-                List.of(
-                        new NodeDescriptor.IO("Item In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.WEST),
-                        new NodeDescriptor.IO("Chemical In", "chemin", new NodeDescriptor.Data(NodeDescriptor.DataType.Chemical, false), Direction.EAST),
-                        new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Direction.UP)
-                ),
-                List.of(
-                        new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.SOUTH)
-                ),
-                ARGB.color(255, 110, 100, 105),
-                i,
-                BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(block)),
-                config
-        );
-
-        configurators.put(
-                TileEntityAdvancedElectricMachine.class,
-                advancedElectricMachineConfigurator
-        );
-
-        configurators.put(
-                TileEntityItemStackChemicalToItemStackFactory.class,
-                advancedElectricMachineConfigurator
-        );
-
-        descriptorProvider.put(
-                TileEntityAdvancedElectricMachine.class,
-                advancedElectricMachineDescriptor
-        );
-
-        descriptorProvider.put(
-                TileEntityItemStackChemicalToItemStackFactory.class,
-                advancedElectricMachineDescriptor
-        );
-
         descriptorProvider.put(
                 ChestBlockEntity.class,
                 (config, block, formatter, _, i) -> new NodeDescriptor(
@@ -453,6 +150,7 @@ public class StorageConfiguration {
                         config
                 )
         );
+
     }
 
     public interface BlockConfigurator {
@@ -487,30 +185,27 @@ public class StorageConfiguration {
             }
         }
 
-        var itemCap = level.getCapability(Capabilities.Item.BLOCK, pos, Direction.UP);
+        var itemCap = level.getCapability(Capabilities.Item.BLOCK, pos, Direction.NORTH);
+
+        List<NodeDescriptor.IO> inputs = new ArrayList<>();
+        List<NodeDescriptor.IO> outputs = new ArrayList<>();
+        var energy = level.getCapability(Capabilities.Energy.BLOCK, pos, null);
 
         if(itemCap != null) {
-            return new NodeDescriptor(
-                    formatter.apply(state.getBlock().getName().getString()),
-                    List.of(
-                            new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.UP)
-                    ),
-                    List.of(
-                            new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.UP)
-                    ),
-                    ARGB.color(255, 110, 100, 105),
-                    i,
-                    BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(state.getBlock())),
-                    config
+            inputs.add(new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH));
+            outputs.add(new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH));
+        }
+
+        if(energy != null) {
+            inputs.add(
+                    new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Optional.empty())
             );
         }
 
         return new NodeDescriptor(
                 formatter.apply(state.getBlock().getName().getString()),
-                List.of(
-                ),
-                List.of(
-                ),
+                inputs,
+                outputs,
                 ARGB.color(255, 110, 100, 105),
                 i,
                 BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(state.getBlock())),
@@ -518,7 +213,11 @@ public class StorageConfiguration {
         );
     }
 
-    public static record NodeCategory(String name, List<NodeDescriptor> nodes) {
+    public record NodeCategory(String name, ArrayList<NodeDescriptor> nodes) {
+
+        public NodeCategory(String name, List<NodeDescriptor> nodes) {
+            this(name, new ArrayList<>(nodes));
+        }
 
         public static final Codec<NodeCategory> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.fieldOf("name").forGetter(NodeCategory::name),
@@ -527,41 +226,13 @@ public class StorageConfiguration {
 
     }
 
-    public static boolean isStorageItem(Item item) {
-        return item == Patchwork.T1_VIRTUAL_STORAGE.get() || item == Patchwork.T2_VIRTUAL_STORAGE.get() || item == Patchwork.T3_VIRTUAL_STORAGE.get();
-    }
-
-    public static int getStorageMaxGraphs(Item item) {
-        if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
-            return 2;
-        } else if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
-            return 8;
-        } else if(item == Patchwork.T3_VIRTUAL_STORAGE.get()) {
-            return 32;
-        }
-
-        return 0;
-    }
-
-    public static int getStorageMaxVirt(Item item) {
-        if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
-            return 4;
-        } else if(item == Patchwork.T1_VIRTUAL_STORAGE.get()) {
-            return 32;
-        } else if(item == Patchwork.T3_VIRTUAL_STORAGE.get()) {
-            return 128;
-        }
-
-        return 0;
-    }
-
     public static List<StorageConfiguration> getConfigurationsFromNetwork(BlockGraph graph) {
         List<StorageConfiguration> configs = new ArrayList<>();
 
         for (var node : graph.getNodes().toList()) {
             if (node.getNode() instanceof SFDriveNode && node.getBlockEntity() instanceof SFDriveBlockEntity drive) {
                 for(var item : drive.slots) {
-                    if(isStorageItem(item.getItem())) {
+                    if(item.getItem() instanceof VirtualStorageItem vi) {
                         SFStorageDriveData config = item.get(Patchwork.STORAGE_MODULE_DATA_COMPONENT.get());
 
                         ServerSavedData data = graph.getGraphView().getWorld().getServer().getDataStorage().computeIfAbsent(ServerSavedData.ID);
@@ -574,7 +245,7 @@ public class StorageConfiguration {
                                     config
                             );
 
-                            data.configs.put(config.id(), new StorageConfiguration(config.id(), getStorageMaxGraphs(item.getItem()), getStorageMaxVirt(item.getItem())));
+                            data.configs.put(config.id(), new StorageConfiguration(config.id(), vi.maxGraphs, vi.maxVirtualized));
                             data.setDirty();
                         }
 
@@ -594,10 +265,10 @@ public class StorageConfiguration {
     }
 
     public static List<NodeCategory> getNodesFromNetworkResources(List<StorageConfiguration> configs, BlockGraph graph, ServerLevel level, ServerPlayer player) {
-        List<StorageConfiguration.NodeCategory> categories = new ArrayList<>();
+        ArrayList<StorageConfiguration.NodeCategory> categories = new ArrayList<>();
 
-        List<NodeDescriptor> virtualizedCategory = new ArrayList<>();
-        List<NodeDescriptor> interfaceCategory = new ArrayList<>();
+        ArrayList<NodeDescriptor> virtualizedCategory = new ArrayList<>();
+        ArrayList<NodeDescriptor> interfaceCategory = new ArrayList<>();
 
         categories.add(new StorageConfiguration.NodeCategory("Interfaces", interfaceCategory));
         categories.add(new StorageConfiguration.NodeCategory("Virtual", virtualizedCategory));

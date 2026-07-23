@@ -99,6 +99,35 @@ public class RenderableGraphNode extends Renderable {
                 if(pos != null) {
                     ClientPacketDistributor.sendToServer(new EjectVirtualizedMachineServerboundPayload(state.controllerPos, pos));
                 }
+
+                state.selectedNodes.removeIf(
+                        n -> n.descriptor.configuration().equals(this.descriptor.configuration())
+                );
+
+                state.serverProvidedDescriptors.forEach(cat -> cat.nodes().removeIf(
+                        node -> node.configuration().equals(this.descriptor.configuration())
+                ));
+
+                if(state.getCurrentGraph() != null) {
+                    var similarNodes = state.getCurrentGraph().nodeDescriptors.entrySet().stream().filter(entry -> entry.getValue().configuration().equals(this.descriptor.configuration())).toList();
+
+                    for (var similarNode : similarNodes) {
+                        state.getCurrentGraph().nodeDescriptors.remove(similarNode.getKey());
+                        state.getCurrentGraph().nodePositions.remove(similarNode.getKey());
+
+                        state.graphNodes.elements.removeIf(
+                                renderable -> {
+                                    var desc = ((RenderableGraphNode) renderable).descriptor;
+                                    if(desc == null || desc.configuration() == null) return false;
+                                    return desc.configuration().equals(this.descriptor.configuration());
+                                }
+                        );
+                    }
+                }
+
+                if(state.getCurrentGraph() != null) state.getCurrentGraph().connections.removeIf(
+                        c -> state.getCurrentGraph().nodeDescriptors.get(c.to()).configuration().equals(this.descriptor.configuration()) || state.getCurrentGraph().nodeDescriptors.get(c.from()).configuration().equals(this.descriptor.configuration())
+                );
             });
             this.ejectRemote.paddingX = 3;
             this.ejectRemote.paddingY = 3;

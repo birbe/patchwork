@@ -1,7 +1,5 @@
 package party.stoat.patchwork;
 
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
@@ -9,9 +7,9 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.client.renderer.BindGroupLayouts;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
@@ -34,7 +32,6 @@ import static net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET;
 public class PatchworkClient {
 
     public static RenderPipeline LINE;
-    public static VertexFormat POS_COL_FLOAT = VertexFormat.builder(0).addAttribute("Position", GpuFormat.RGB32_FLOAT).addAttribute("Color", GpuFormat.RGBA8_UNORM).addAttribute("t", GpuFormat.R32_FLOAT).build();
 
 
     public PatchworkClient(ModContainer container) {
@@ -46,8 +43,9 @@ public class PatchworkClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-        LINE = RenderPipeline.builder(new RenderPipeline.Snippet[]{RenderPipelines.GUI_SNIPPET}).withLocation("pipeline/gui").withPrimitiveTopology(PrimitiveTopology.TRIANGLES).withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, true)).withCull(false).build();
+//        LINE = RenderPipeline.builder(new RenderPipeline.Snippet[]{RenderPipelines.GUI_SNIPPET}).withLocation("pipeline/gui").withPrimitiveTopology(PrimitiveTopology.TRIANGLES).withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, true)).withCull(false).build();
 
+        LINE = RenderPipeline.builder(RenderPipelines.GUI_SNIPPET).withLocation("pipeline/gui").withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, true)).withCull(false).build();
 
     }
 }

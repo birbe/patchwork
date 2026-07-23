@@ -1,11 +1,17 @@
 package party.stoat.patchwork.virtual;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +35,33 @@ public class VirtualManager {
             data.virtualized.add(pos);
 
             level.setBlockAndUpdate(pos, blockItem.getBlock().defaultBlockState());
+
+            data.setDirty();
+//
+//            BlockPos supportPos = pos.below();
+//
+//            level.setBlockAndUpdate(supportPos, Blocks.BEDROCK.defaultBlockState());
+//
+//            Vec3 hitLocation = new Vec3(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+//
+//            BlockHitResult hitResult = new BlockHitResult(
+//                    hitLocation,
+//                    Direction.UP,
+//                    supportPos,
+//                    false
+//            );
+//
+//            UseOnContext useOnContext = new UseOnContext(
+//                    level,
+//                    null,
+//                    InteractionHand.MAIN_HAND,
+//                    stack,
+//                    hitResult
+//            );
+//
+//            blockItem.place(new BlockPlaceContext(
+//                    useOnContext
+//            ));
 
             return pos;
         } else return null;
