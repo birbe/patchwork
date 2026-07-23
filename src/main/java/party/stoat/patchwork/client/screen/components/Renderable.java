@@ -1,6 +1,8 @@
 package party.stoat.patchwork.client.screen.components;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import party.stoat.patchwork.client.screen.EditorScreen;
 
 import java.util.List;
@@ -32,13 +34,31 @@ public abstract class Renderable {
             if(this.scissor) g.disableScissor();
         }
 
-        public void onKeyDown(int key) {
-            this.children.forEach(c -> c.onKeyDown(key));
-            this.r.onKeyDown(key);
+        public void onKeyDown(KeyEvent event) {
+            this.children.forEach(c -> c.onKeyDown(event));
+            this.r.onKeyDown(event);
+        }
+
+        public boolean charTyped(CharacterEvent event, EditorScreen.EditorState state) {
+            this.children.forEach(c -> c.charTyped(event, state));
+            this.r.charTyped(event, state);
+
+            return true;
+        }
+
+        public void onKeyUp(KeyEvent event) {
+            this.children.forEach(c -> c.onKeyUp(event));
+            this.r.onKeyUp(event);
         }
 
         public boolean contains(int x, int y) {
             return x >= this.x && x <= this.x + this.width && y >= this.y && y <= this.y + this.height;
+        }
+
+        public void onMouseDownGlobal(int x, int y, EditorScreen.EditorState state) {
+            this.children.forEach(c -> c.onMouseDownGlobal(x, y, state));
+
+            this.r.onMouseDownGlobal(x, y, state);
         }
 
         public boolean onMouseDown(int x, int y, EditorScreen.EditorState state) {
@@ -88,11 +108,19 @@ public abstract class Renderable {
         }
     }
 
+    public boolean charTyped(CharacterEvent event, EditorScreen.EditorState state) {
+        return false;
+    }
+
     public boolean onMouseDown(int x, int y, EditorScreen.EditorState state) {
         return false;
     }
 
-    public void onKeyDown(int key) {}
+    public void onMouseDownGlobal(int x, int y, EditorScreen.EditorState state) {}
+
+    public void onKeyDown(KeyEvent event) {}
+
+    public void onKeyUp(KeyEvent event) {}
 
     public void onScroll(double x, double y, double scrollX, double scrollY) {}
 

@@ -3,6 +3,8 @@ package party.stoat.patchwork.client.screen.components;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -16,7 +18,7 @@ import party.stoat.patchwork.client.screen.EditorScreen;
 import party.stoat.patchwork.network.EjectVirtualizedMachineServerboundPayload;
 import party.stoat.patchwork.patchgraph.NodeDescriptor;
 import party.stoat.patchwork.network.OpenRemoteMachineServerboundPayload;
-import party.stoat.patchwork.patchgraph.nodes.VirtualizedBlockNode;
+import party.stoat.patchwork.patchgraph.PatchGraph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,6 +46,17 @@ public class RenderableGraphNode extends Renderable {
 
     public HashMap<String, NodeIO> ports = new HashMap<>();
 
+    public boolean hovering;
+    public boolean configuringName;
+
+    private Text headerAsText;
+    private Many header;
+    private TextInput nameInput;
+    private PatchGraph graph;
+
+    public boolean hasClicked;
+    public long lastClick;
+
     boolean preview;
 
     public static final Identifier VIRTUAL_NODE_IDENTIFIER = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "virtual");
@@ -53,9 +66,15 @@ public class RenderableGraphNode extends Renderable {
         this.descriptor = d;
         this.preview = preview;
 
-        var header = new Text(d.title(), 0xffffffff);
+        this.headerAsText = new Text(d.title(), 0xffffffff);
+
+        this.nameInput = new TextInput(d.title(), 100, 15);
+        this.nameInput.offsetY = -2;
+
+        this.header = new Many(new ArrayList<>(List.of(this.headerAsText)));
         header.offsetX = 5;
         header.offsetY = 5;
+
         children.add(header);
 
         var inputs = new VerticalList<NodeIO>(new ArrayList<>(), 4, false, false);
@@ -92,6 +111,8 @@ public class RenderableGraphNode extends Renderable {
         if(this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER) || this.descriptor.identifier().equals(Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "interface"))) {
             outputs.elements.add(this.openRemote);
         }
+
+        this.header.scissor = false;
 
         if(this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER)) {
             this.ejectRemote = new ImageButton(EditorScreen.EJECT_TEXTURE, 16, 16, (btn, state) -> {
@@ -164,7 +185,14 @@ public class RenderableGraphNode extends Renderable {
     @Override
     public boolean onMouseDown(int x, int y, EditorScreen.EditorState state) {
         if(state.getCurrentGraph() == null) return false;
-        
+
+        if(hasClicked) {
+            if(System.currentTimeMillis() - lastClick < 500) {
+                this.configuringName = true;
+            }
+            lastClick = System.currentTimeMillis();
+        } else hasClicked = true;
+
         if(this.preview) {
             var newNode = new RenderableGraphNode(this.descriptor, UUID.randomUUID(), false);
 
@@ -193,10 +221,31 @@ public class RenderableGraphNode extends Renderable {
     }
 
     @Override
+    public void onMouseDownGlobal(int x, int y, EditorScreen.EditorState state) {
+        if(this.layoutCache != null) {
+            if(!this.layoutCache.contains(x, y)) {
+                this.configuringName = false;
+            }
+        }
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event, EditorScreen.EditorState state) {
+        if(this.configuringName) {
+            this.headerAsText.content = this.nameInput.editBox.getValue();
+            this.descriptor = NodeDescriptor.ofName(this.nameInput.editBox.getValue(), this.descriptor);
+            state.getCurrentGraph().nodeDescriptors.put(this.uuid, this.descriptor);
+        }
+
+        return super.charTyped(event, state);
+    }
+
+    @Override
     public void onMouseMove(int x, int y, EditorScreen.EditorState state) {
         dragging = mouseDown;
 
         if (dragging) {
+            this.hovering = false;
             if(!state.selectedNodes.contains(this)) {
                 if(state.shiftPressed) {
                     state.selectedNodes.add(this);
@@ -217,6 +266,10 @@ public class RenderableGraphNode extends Renderable {
             });
 
             state.markDirty();
+        } else {
+            if(this.layoutCache != null) {
+                if(!this.configuringName && !this.preview) this.hovering = this.layoutCache.contains(x + this.layoutCache.x(), y + this.layoutCache.y());
+            }
         }
     }
 
@@ -247,6 +300,11 @@ public class RenderableGraphNode extends Renderable {
     protected Layout extractInnerLayout(int dX, int dY) {
         int w = 0;
         int h = 0;
+
+        if(!this.preview) {
+            if(!this.hovering) this.configuringName = false;
+            this.header.elements.set(0, this.configuringName ? this.nameInput : this.headerAsText);
+        }
 
         var childLayouts = new ArrayList<Layout>();
 

@@ -13,6 +13,10 @@ import java.util.Optional;
 public record NodeDescriptor(String title, List<IO> inputs, List<IO> outputs, int color, Identifier identifier,
                              Identifier icon, String configuration) {
 
+    public static NodeDescriptor ofName(String newName, NodeDescriptor other) {
+        return new NodeDescriptor(newName, other.inputs, other.outputs, other.color, other.identifier, other.icon, other.configuration);
+    }
+
     public static final Codec<NodeDescriptor> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     Codec.STRING.fieldOf("title").forGetter(NodeDescriptor::title),

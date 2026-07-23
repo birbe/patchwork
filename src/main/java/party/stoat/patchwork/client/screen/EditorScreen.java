@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.BlockPos;
@@ -40,6 +41,7 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
     private static final Identifier CONTAINER_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/container/inventory.png");
     public static final Identifier MAGNIFYING_GLASS_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/magnifying_glass.png");
     public static final Identifier EJECT_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/eject.png");
+    public static final Identifier WRENCH_TEXTURE = Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "textures/gui/eject.png");
 
     private static final int CONTAINER_WIDTH = 175;
     private static final int CONTAINER_HEIGHT = 90;
@@ -104,9 +106,19 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
     }
 
     @Override
+    public boolean charTyped(CharacterEvent event) {
+        if(this.lastLayout != null) {
+            this.lastLayout.charTyped(event, this.state);
+        }
+
+        return true;
+    }
+
+    @Override
     public boolean mouseClicked(@NonNull MouseButtonEvent event, boolean doubleClick) {
         if (this.lastLayout != null) {
             var result = this.lastLayout.onMouseDown((int) event.x(), (int) event.y(), this.state);
+            this.lastLayout.onMouseDownGlobal((int) event.x(), (int) event.y(), this.state);
 
             if(!result) {
                 state.selectedNodes.forEach(node -> node.highlighted = false);
@@ -163,6 +175,8 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
     public boolean keyReleased(KeyEvent event) {
         if(event.key() == GLFW.GLFW_KEY_LEFT_SHIFT) state.shiftPressed = false;
 
+        if(this.lastLayout != null) this.lastLayout.onKeyUp(event);
+
         return super.keyReleased(event);
     }
 
@@ -187,11 +201,11 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
             state.selectedNodes.clear();
         }
 
-        if(this.lastLayout != null) this.lastLayout.onKeyDown(event.key());
+        if(this.lastLayout != null) this.lastLayout.onKeyDown(event);
 
-        super.keyPressed(event);
+        if(event.isEscape()) super.keyPressed(event);
 
-        return super.keyPressed(event);
+        return true;
     }
 
     static class ItemStackNodeIcon extends NodeIcon {
