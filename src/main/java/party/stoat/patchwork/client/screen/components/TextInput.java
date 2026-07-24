@@ -26,6 +26,8 @@ public class TextInput extends Renderable {
 
     public TextInput(String content, int width, int height) {
         this.editBox = new EditBox(EditorScreen.FONT, width, height, Component.empty());
+        this.editBox.setValue(content);
+
         this.text = new Text(content, 0xffffffff);
         this.width = width;
         this.height = height;

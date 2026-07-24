@@ -4,8 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
@@ -16,14 +16,11 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import party.stoat.patchwork.Patchwork;
 import party.stoat.patchwork.client.screen.EditorScreen;
 import party.stoat.patchwork.network.EjectVirtualizedMachineServerboundPayload;
-import party.stoat.patchwork.patchgraph.NodeDescriptor;
 import party.stoat.patchwork.network.OpenRemoteMachineServerboundPayload;
+import party.stoat.patchwork.patchgraph.NodeDescriptor;
 import party.stoat.patchwork.patchgraph.PatchGraph;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class RenderableGraphNode extends Renderable {
 
@@ -46,8 +43,14 @@ public class RenderableGraphNode extends Renderable {
 
     public HashMap<String, NodeIO> ports = new HashMap<>();
 
+    VerticalList<Renderable> inputs;
+    VerticalList<Renderable> outputs;
+
+    List<Renderable> oldInputs;
+    List<Renderable> oldOutputs;
+
     public boolean hovering;
-    public boolean configuringName;
+    public boolean configuringNode;
 
     private Text headerAsText;
     private Many header;
@@ -77,8 +80,8 @@ public class RenderableGraphNode extends Renderable {
 
         children.add(header);
 
-        var inputs = new VerticalList<NodeIO>(new ArrayList<>(), 4, false, false);
-        var outputs = new VerticalList<>(new ArrayList<>(), 4, true, false);
+        this.inputs = new VerticalList<>(new ArrayList<>(), 4, false, false);
+        this.outputs = new VerticalList<>(new ArrayList<>(), 4, true, false);
 
         this.openRemote = new ImageButton(EditorScreen.MAGNIFYING_GLASS_TEXTURE, 16, 16, (btn, state) -> {
             ClientPacketDistributor.sendToServer(new OpenRemoteMachineServerboundPayload(uuid, state.controllerPos));
@@ -108,16 +111,17 @@ public class RenderableGraphNode extends Renderable {
             ports.put(o.key(), io);
         }
 
-        if(this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER) || this.descriptor.identifier().equals(Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "interface"))) {
+        if (this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER) || this.descriptor.identifier().equals(Identifier.fromNamespaceAndPath(Patchwork.MOD_ID, "interface"))) {
             outputs.elements.add(this.openRemote);
         }
 
         this.header.scissor = false;
 
-        if(this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER)) {
+        if (this.descriptor.identifier().equals(VIRTUAL_NODE_IDENTIFIER)) {
             this.ejectRemote = new ImageButton(EditorScreen.EJECT_TEXTURE, 16, 16, (btn, state) -> {
-                BlockPos pos = new Gson().fromJson(this.descriptor.configuration(), new TypeToken<BlockPos>() {}.getType());
-                if(pos != null) {
+                BlockPos pos = new Gson().fromJson(this.descriptor.configuration(), new TypeToken<BlockPos>() {
+                }.getType());
+                if (pos != null) {
                     ClientPacketDistributor.sendToServer(new EjectVirtualizedMachineServerboundPayload(state.controllerPos, pos));
                 }
 
@@ -129,7 +133,7 @@ public class RenderableGraphNode extends Renderable {
                         node -> node.configuration().equals(this.descriptor.configuration())
                 ));
 
-                if(state.getCurrentGraph() != null) {
+                if (state.getCurrentGraph() != null) {
                     var similarNodes = state.getCurrentGraph().nodeDescriptors.entrySet().stream().filter(entry -> entry.getValue().configuration().equals(this.descriptor.configuration())).toList();
 
                     for (var similarNode : similarNodes) {
@@ -139,14 +143,14 @@ public class RenderableGraphNode extends Renderable {
                         state.graphNodes.elements.removeIf(
                                 renderable -> {
                                     var desc = ((RenderableGraphNode) renderable).descriptor;
-                                    if(desc == null || desc.configuration() == null) return false;
+                                    if (desc == null || desc.configuration() == null) return false;
                                     return desc.configuration().equals(this.descriptor.configuration());
                                 }
                         );
                     }
                 }
 
-                if(state.getCurrentGraph() != null) state.getCurrentGraph().connections.removeIf(
+                if (state.getCurrentGraph() != null) state.getCurrentGraph().connections.removeIf(
                         c -> state.getCurrentGraph().nodeDescriptors.get(c.to()).configuration().equals(this.descriptor.configuration()) || state.getCurrentGraph().nodeDescriptors.get(c.from()).configuration().equals(this.descriptor.configuration())
                 );
             });
@@ -169,7 +173,7 @@ public class RenderableGraphNode extends Renderable {
         g.fill(l.x() + 1, l.y() + 1, l.x() + l.width() - 1, l.y() + l.height() - 1, ARGB.color(255, 35, 35, 35));
         g.fill(l.x() + 1, l.y() + 1, l.x() + l.width() - 1, l.y() + HEADER_HEIGHT, this.descriptor.color());
 
-        if(descriptor.icon() != null) {
+        if (descriptor.icon() != null) {
             Item item = BuiltInRegistries.ITEM.get(descriptor.icon()).get().value();
             g.pose().pushMatrix();
 
@@ -183,17 +187,29 @@ public class RenderableGraphNode extends Renderable {
     }
 
     @Override
-    public boolean onMouseDown(int x, int y, EditorScreen.EditorState state) {
-        if(state.getCurrentGraph() == null) return false;
+    public boolean charTyped(CharacterEvent event, EditorScreen.EditorState state) {
+        this.nameInput.editBox.setResponder(val -> {
+            if (this.configuringNode) {
+                this.descriptor = NodeDescriptor.ofName(val, this.descriptor);
+                state.getCurrentGraph().nodeDescriptors.put(this.uuid, this.descriptor);
+            }
+        });
 
-        if(hasClicked) {
-            if(System.currentTimeMillis() - lastClick < 500) {
-                this.configuringName = true;
+        return true;
+    }
+
+    @Override
+    public boolean onMouseDown(int x, int y, EditorScreen.EditorState state) {
+        if (state.getCurrentGraph() == null) return false;
+
+        if (hasClicked) {
+            if (System.currentTimeMillis() - lastClick < 500) {
+                this.setConfiguring(true, state);
             }
             lastClick = System.currentTimeMillis();
         } else hasClicked = true;
 
-        if(this.preview) {
+        if (this.preview) {
             var newNode = new RenderableGraphNode(this.descriptor, UUID.randomUUID(), false);
 
             newNode.highlighted = true;
@@ -222,22 +238,11 @@ public class RenderableGraphNode extends Renderable {
 
     @Override
     public void onMouseDownGlobal(int x, int y, EditorScreen.EditorState state) {
-        if(this.layoutCache != null) {
-            if(!this.layoutCache.contains(x, y)) {
-                this.configuringName = false;
+        if (this.layoutCache != null) {
+            if (!this.layoutCache.contains(x, y)) {
+                this.setConfiguring(false, state);
             }
         }
-    }
-
-    @Override
-    public boolean charTyped(CharacterEvent event, EditorScreen.EditorState state) {
-        if(this.configuringName) {
-            this.headerAsText.content = this.nameInput.editBox.getValue();
-            this.descriptor = NodeDescriptor.ofName(this.nameInput.editBox.getValue(), this.descriptor);
-            state.getCurrentGraph().nodeDescriptors.put(this.uuid, this.descriptor);
-        }
-
-        return super.charTyped(event, state);
     }
 
     @Override
@@ -246,8 +251,8 @@ public class RenderableGraphNode extends Renderable {
 
         if (dragging) {
             this.hovering = false;
-            if(!state.selectedNodes.contains(this)) {
-                if(state.shiftPressed) {
+            if (!state.selectedNodes.contains(this)) {
+                if (state.shiftPressed) {
                     state.selectedNodes.add(this);
                     this.highlighted = true;
                 } else {
@@ -267,16 +272,17 @@ public class RenderableGraphNode extends Renderable {
 
             state.markDirty();
         } else {
-            if(this.layoutCache != null) {
-                if(!this.configuringName && !this.preview) this.hovering = this.layoutCache.contains(x + this.layoutCache.x(), y + this.layoutCache.y());
+            if (this.layoutCache != null) {
+                if (!this.configuringNode && !this.preview)
+                    this.hovering = this.layoutCache.contains(x + this.layoutCache.x(), y + this.layoutCache.y());
             }
         }
     }
 
     @Override
     public boolean onMouseUp(int x, int y, EditorScreen.EditorState state) {
-        if(this.layoutCache.contains(x + this.layoutCache.x(), y + this.layoutCache.y()) && !this.preview) {
-            if(!dragging) {
+        if (this.layoutCache.contains(x + this.layoutCache.x(), y + this.layoutCache.y()) && !this.preview) {
+            if (!dragging) {
                 if (!state.shiftPressed) {
                     state.selectedNodes.forEach(node -> node.highlighted = false);
                     state.selectedNodes.clear();
@@ -284,7 +290,7 @@ public class RenderableGraphNode extends Renderable {
                     state.selectedNodes.add(this);
                     this.highlighted = true;
                 } else {
-                    if(!state.selectedNodes.contains(this)) state.selectedNodes.add(this);
+                    if (!state.selectedNodes.contains(this)) state.selectedNodes.add(this);
                     this.highlighted = true;
                 }
             }
@@ -296,14 +302,122 @@ public class RenderableGraphNode extends Renderable {
         return false;
     }
 
+    public void setConfiguring(boolean configuring, EditorScreen.EditorState state) {
+        if (configuring != this.configuringNode) {
+            if (!configuring) {
+                List<NodeDescriptor.IO> newDescInputs = new ArrayList<>();
+                List<NodeDescriptor.IO> newDescOutputs = new ArrayList<>();
+
+                var i = 0;
+                for (var input : this.inputs.elements) {
+                    if (input instanceof NodeIOConfiguring configureIO) {
+                        newDescInputs.add(
+                                new NodeDescriptor.IO(configureIO.display.editBox.getValue(), "i" + i, new NodeDescriptor.Data(configureIO.type, false), Optional.ofNullable(configureIO.direction))
+                        );
+                    }
+                    i++;
+                }
+
+                var o = 0;
+                for (var output : this.outputs.elements) {
+                    if (output instanceof NodeIOConfiguring configureIO) {
+                        newDescOutputs.add(
+                                new NodeDescriptor.IO(configureIO.display.editBox.getValue(), "o" + o, new NodeDescriptor.Data(configureIO.type, false), Optional.ofNullable(configureIO.direction))
+                        );
+                    }
+                    o++;
+                }
+
+                this.descriptor = NodeDescriptor.ofInputs(newDescInputs, NodeDescriptor.ofOutputs(newDescOutputs, this.descriptor));
+                state.getCurrentGraph().nodeDescriptors.put(this.uuid, this.descriptor);
+                state.getCurrentGraph().fixConnections();
+                state.markDirty();
+
+                this.inputs.elements.clear();
+                this.outputs.elements.clear();
+
+                for (var input : this.descriptor.inputs()) {
+                    var io = new NodeIO(input.name(), input.key(), this.uuid, false, this.preview, input.d().d());
+                    inputs.elements.add(io);
+                    ports.put(input.key(), io);
+                }
+
+                for (var output : this.descriptor.outputs()) {
+                    var io = new NodeIO(output.name(), output.key(), this.uuid, true, this.preview, output.d().d());
+                    outputs.elements.add(io);
+                    ports.put(output.key(), io);
+                }
+
+                this.outputs.elements.add(this.openRemote);
+
+                outputs.offsetX = Math.max(EditorScreen.FONT.width(this.descriptor.title()), inputs.width + outputs.width) + 5;
+                outputs.offsetX = Math.max(outputs.offsetX, 80);
+                this.headerAsText.content = this.descriptor.title();
+            } else {
+                this.oldInputs = this.inputs.elements;
+                this.oldOutputs = this.outputs.elements;
+
+                this.inputs.elements = new ArrayList<>();
+                this.outputs.elements = new ArrayList<>();
+
+                for (var i : this.descriptor.inputs()) {
+                    this.inputs.elements.add(
+                            new NodeIOConfiguring(i.name(), i.key(), this.uuid, false, false, i.d().d(), i.direction(), (_, _) -> this.inputs.elements.removeIf(
+                                    e -> e instanceof NodeIOConfiguring io && io.port.key.equals(i.key())
+                            ))
+                    );
+                }
+
+                for (var o : this.descriptor.outputs()) {
+                    this.outputs.elements.add(
+                            new NodeIOConfiguring(o.name(), o.key(), this.uuid, true, false, o.d().d(), o.direction(), (_, _) -> this.outputs.elements.removeIf(
+                                    e -> e instanceof NodeIOConfiguring io && io.port.key.equals(o.key())
+                            ))
+                    );
+                }
+
+                var btn1 = new ImageButton(ImageButton.PLUS, 16, 16, (btn, _) -> {
+                    var key = UUID.randomUUID().toString();
+                    this.inputs.elements.add(this.inputs.elements.size() - 1,
+                            new NodeIOConfiguring("Unnamed input", key, this.uuid, false, false, NodeDescriptor.DataType.Item, Optional.of(Direction.NORTH), (_, _) -> this.inputs.elements.removeIf(
+                                    e -> e instanceof NodeIOConfiguring io && io.port.key.equals(key)
+                            ))
+                    );
+                });
+
+                this.inputs.elements.add(btn1);
+
+                var btn2 = new ImageButton(ImageButton.PLUS, 16, 16, (btn, _) -> {
+                    var key = UUID.randomUUID().toString();
+                    this.outputs.elements.add(this.outputs.elements.size() - 1,
+                            new NodeIOConfiguring("Unnamed output", key, this.uuid, false, false, NodeDescriptor.DataType.Item, Optional.of(Direction.NORTH), (_, _) -> this.outputs.elements.removeIf(
+                                    e -> e instanceof NodeIOConfiguring io && io.port.key.equals(key)
+                            ))
+                    );
+                });
+
+                btn1.offsetX = 10;
+                btn2.offsetX = -10;
+
+                inputs.width = 30;
+
+                outputs.width = 30;
+                outputs.offsetX = 200;
+
+                this.outputs.elements.add(btn2);
+            }
+        }
+
+        this.configuringNode = configuring;
+    }
+
     @Override
     protected Layout extractInnerLayout(int dX, int dY) {
         int w = 0;
         int h = 0;
 
-        if(!this.preview) {
-            if(!this.hovering) this.configuringName = false;
-            this.header.elements.set(0, this.configuringName ? this.nameInput : this.headerAsText);
+        if (!this.preview) {
+            this.header.elements.set(0, this.configuringNode ? this.nameInput : this.headerAsText);
         }
 
         var childLayouts = new ArrayList<Layout>();

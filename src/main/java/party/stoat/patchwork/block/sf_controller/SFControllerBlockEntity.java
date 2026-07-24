@@ -146,7 +146,6 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
                             node.tick(config, patchInstance, serverLevel, nodeGraph, inner, entity);
                             var amount = entity.storage.getAmountAsInt() - 10;
                             entity.storage.set(Math.max(amount, 0));
-//                            var amount = 1;
 
                             if(amount >= 0) inner.commit();
                             else {

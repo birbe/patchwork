@@ -59,6 +59,18 @@ public class PatchGraph {
         this.graphId = id;
     }
 
+    public void fixConnections() {
+        this.connections.removeIf(
+                c -> {
+                    if(!this.nodeDescriptors.containsKey(c.from)) return true;
+                    if(!this.nodeDescriptors.containsKey(c.to)) return true;
+
+                    if(this.nodeDescriptors.get(c.from).getPort(c.keyFrom) == null) return true;
+                    return this.nodeDescriptors.get(c.to).getPort(c.keyTo) == null;
+                }
+        );
+    }
+
     public void removeConnection(UUID from, UUID to, String keyFrom, String keyTo) {
         this.connections = this.connections.stream().filter(c -> !(c.from.equals(from) && c.to.equals(to) && c.keyFrom.equals(keyFrom) && c.keyTo.equals(keyTo))).collect(Collectors.toCollection(ArrayList::new));
     }

@@ -175,7 +175,7 @@ public class StorageConfiguration {
         output.putString("graphs", new Gson().toJson(this.graphs));
     }
 
-    public NodeDescriptor getDescriptorForBlock(ServerLevel level, BlockPos pos, Function<String, String> formatter, ServerPlayer player, Identifier i, String config) {
+    public static NodeDescriptor getDescriptorForBlock(ServerLevel level, BlockPos pos, Function<String, String> formatter, ServerPlayer player, Identifier i, String config) {
         BlockState state = level.getBlockState(pos);
         BlockEntity entity = level.getBlockEntity(pos);
 
@@ -185,27 +185,10 @@ public class StorageConfiguration {
             }
         }
 
-        var itemCap = level.getCapability(Capabilities.Item.BLOCK, pos, Direction.NORTH);
-
-        List<NodeDescriptor.IO> inputs = new ArrayList<>();
-        List<NodeDescriptor.IO> outputs = new ArrayList<>();
-        var energy = level.getCapability(Capabilities.Energy.BLOCK, pos, null);
-
-        if(itemCap != null) {
-            inputs.add(new NodeDescriptor.IO("In", "in", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH));
-            outputs.add(new NodeDescriptor.IO("Out", "out", new NodeDescriptor.Data(NodeDescriptor.DataType.Item, false), Direction.NORTH));
-        }
-
-        if(energy != null) {
-            inputs.add(
-                    new NodeDescriptor.IO("Power", "powerin", new NodeDescriptor.Data(NodeDescriptor.DataType.Energy, false), Optional.empty())
-            );
-        }
-
         return new NodeDescriptor(
                 formatter.apply(state.getBlock().getName().getString()),
-                inputs,
-                outputs,
+                List.of(),
+                List.of(),
                 ARGB.color(255, 110, 100, 105),
                 i,
                 BuiltInRegistries.ITEM.getKey(BlockItem.BY_BLOCK.get(state.getBlock())),
@@ -276,25 +259,25 @@ public class StorageConfiguration {
         for(var config : configs) {
             for (var virtualizedPos : config.virtualized) {
                 var blockPosConfig = new Gson().toJson(virtualizedPos);
-                virtualizedCategory.add(config.configureBlockAndGetDescriptor(level, player, virtualizedPos, s -> s, VIRTUAL_IDENTIFIER, blockPosConfig));
+                virtualizedCategory.add(configureBlockAndGetDescriptor(level, player, virtualizedPos, s -> s, VIRTUAL_IDENTIFIER, blockPosConfig));
             }
+        }
 
-            for (var node : graph.getNodes().toList()) {
-                if (node.getNode() instanceof SFInterfaceNode) {
-                    var facing = node.getBlockState().getValue(SFInterface.FACING);
-                    var proxiedPos = node.getBlockPos().relative(facing);
+        for (var node : graph.getNodes().toList()) {
+            if (node.getNode() instanceof SFInterfaceNode) {
+                var facing = node.getBlockState().getValue(SFInterface.FACING);
+                var proxiedPos = node.getBlockPos().relative(facing);
 
-                    var interfaceConfig = new Gson().toJson(new InterfaceNode.Configuration(node.getBlockPos(), facing));
+                var interfaceConfig = new Gson().toJson(new InterfaceNode.Configuration(node.getBlockPos(), facing));
 
-                    interfaceCategory.add(config.configureBlockAndGetDescriptor(level, player, proxiedPos, s -> "Interface (" + s + ")", INTERFACE_IDENTIFIER, interfaceConfig));
-                }
+                interfaceCategory.add(configureBlockAndGetDescriptor(level, player, proxiedPos, s -> "Interface (" + s + ")", INTERFACE_IDENTIFIER, interfaceConfig));
             }
         }
 
         return categories;
     }
 
-    private NodeDescriptor configureBlockAndGetDescriptor(ServerLevel level, ServerPlayer player, BlockPos proxiedPos, Function<String, String> formatter, Identifier identifier, String config) {
+    private static NodeDescriptor configureBlockAndGetDescriptor(ServerLevel level, ServerPlayer player, BlockPos proxiedPos, Function<String, String> formatter, Identifier identifier, String config) {
         BlockState state = level.getBlockState(proxiedPos);
         BlockEntity entity = level.getBlockEntity(proxiedPos);
 

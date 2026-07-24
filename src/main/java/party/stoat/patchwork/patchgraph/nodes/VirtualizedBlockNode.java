@@ -144,8 +144,6 @@ public class VirtualizedBlockNode extends Node {
                         transaction.commit();
                     }
                 }
-                case Inventory -> {
-                }
                 case Fluid -> {
                     var storage = level.getCapability(Capabilities.Fluid.BLOCK, this.proxyPos, port.direction().orElse(null));
 
@@ -189,8 +187,6 @@ public class VirtualizedBlockNode extends Node {
 //
 //                        transaction.commit();
 //                    }
-                }
-                case Any -> {
                 }
             }
         }

@@ -17,6 +17,14 @@ public record NodeDescriptor(String title, List<IO> inputs, List<IO> outputs, in
         return new NodeDescriptor(newName, other.inputs, other.outputs, other.color, other.identifier, other.icon, other.configuration);
     }
 
+    public static NodeDescriptor ofInputs(List<IO> newInputs, NodeDescriptor other) {
+        return new NodeDescriptor(other.title(), newInputs, other.outputs, other.color, other.identifier, other.icon, other.configuration);
+    }
+
+    public static NodeDescriptor ofOutputs(List<IO> newOutputs, NodeDescriptor other) {
+        return new NodeDescriptor(other.title(), other.inputs, newOutputs, other.color, other.identifier, other.icon, other.configuration);
+    }
+
     public static final Codec<NodeDescriptor> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     Codec.STRING.fieldOf("title").forGetter(NodeDescriptor::title),
@@ -91,11 +99,9 @@ public record NodeDescriptor(String title, List<IO> inputs, List<IO> outputs, in
     public enum DataType {
 
         Item(ARGB.color(252, 186, 3)),
-        Inventory(ARGB.color(94, 3, 252)),
         Fluid(ARGB.color(187, 242, 250)),
         Energy(ARGB.color(91, 143, 66)),
-        Chemical(ARGB.color(175, 113, 76)),
-        Any(ARGB.color(255, 255, 255));
+        Chemical(ARGB.color(175, 113, 76));
 
         public final int color;
 

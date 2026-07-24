@@ -397,7 +397,7 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
         List<Integer> colors = new ArrayList<>();
 
         if(this.state.draggingFrom != null) {
-            var from = new Vec2(this.state.draggingFrom.layoutCache.x(), this.state.draggingFrom.layoutCache.y());
+            var from = new Vec2(this.state.draggingFrom.layoutCache.x() + 2, this.state.draggingFrom.layoutCache.y() + 2);
             var to = new Vec2(mouseX - 2, mouseY - 2);
 
             connections.add(new Vec2[] { from, to });
@@ -407,19 +407,21 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
         if(state.getCurrentGraph() != null) for(var conn : state.getCurrentGraph().connections) {
             var fromNode = state.graphNodeToRenderableMap.get(conn.from());
             var toNode = state.graphNodeToRenderableMap.get(conn.to());
-
             if(fromNode == null || toNode == null) continue;
 
-            var fromPort = fromNode.ports.get(conn.keyFrom()).port;
-            var toPort = toNode.ports.get(conn.keyTo()).port;
+            var toPort = toNode.ports.get(conn.keyTo());
+            var fromPort = fromNode.ports.get(conn.keyFrom());
+
+            if(toPort == null || fromPort == null) continue;
+
 
             if(fromPort.layoutCache == null || toPort.layoutCache == null) continue;
 
             connections.add(new Vec2[] {
-                    new Vec2(fromPort.layoutCache.x(), fromPort.layoutCache.y() + 2),
-                    new Vec2(toPort.layoutCache.x(), toPort.layoutCache.y() + 2),
+                    new Vec2(fromPort.port.layoutCache.x(), fromPort.port.layoutCache.y() + 2),
+                    new Vec2(toPort.port.layoutCache.x(), toPort.port.layoutCache.y() + 2),
             });
-            colors.add(fromPort.type.color);
+            colors.add(fromPort.port.type.color);
         }
 
 

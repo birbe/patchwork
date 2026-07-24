@@ -33,6 +33,8 @@ public class SFSystemPowerNode extends Node {
             var connectedNode = patch.nodes.get(connection.to());
             var foreignPort = connectedNode.getDescriptor().getPort(connection.keyTo());
 
+            if(foreignPort == null) continue;
+
             if(foreignPort.d().d() != NodeDescriptor.DataType.Energy) continue;
 
             var storage = controller.storage;
@@ -46,7 +48,7 @@ public class SFSystemPowerNode extends Node {
                 int toInsert = 0;
 
                 try(Transaction initial = Transaction.open(inner)) {
-                    var extracted = storage.extract(foreignStorage.getCapacityAsInt(), initial);
+                    var extracted = storage.extract(Math.min(foreignStorage.getCapacityAsInt(), 10000), initial);
                     var inserted = foreignStorage.insert(extracted, initial);
 
                     if(inserted < extracted) {

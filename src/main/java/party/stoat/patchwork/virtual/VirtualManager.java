@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -33,6 +34,26 @@ public class VirtualManager {
 
             var pos = new BlockPos(x, y, z);
             data.virtualized.add(pos);
+
+            for(int xD=-8;xD<5;xD++) {
+                for(int yD=-5;yD<5;yD++) {
+                    for(int zD=-5;zD<5;zD++) {
+                        var posD = new BlockPos(
+                                xD + pos.getX(), yD + pos.getY(), zD + pos.getZ()
+                        );
+
+                        if(xD == -8 || xD == 4 || yD == -5 || yD == 4 || zD == -5 || zD == 4) {
+                            level.setBlock(
+                                    posD,
+                                    Blocks.BEDROCK.defaultBlockState(),
+                                    Block.UPDATE_NONE
+                            );
+                        } else {
+                            level.setBlock(posD, Blocks.AIR.defaultBlockState(), Block.UPDATE_NONE);
+                        }
+                    }
+                }
+            }
 
             level.setBlockAndUpdate(pos, blockItem.getBlock().defaultBlockState());
 
