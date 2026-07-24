@@ -10,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Interaction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -45,7 +44,7 @@ public class SFTerminal extends DirectionalBlock implements SFNetworkConnectable
     }
 
     @Override
-    protected MapCodec<? extends DirectionalBlock> codec() {
+    protected @NonNull MapCodec<? extends DirectionalBlock> codec() {
         return simpleCodec(SFTerminal::new);
     }
 
@@ -60,19 +59,19 @@ public class SFTerminal extends DirectionalBlock implements SFNetworkConnectable
     }
 
     @Override
-    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+    protected void neighborChanged(@NonNull BlockState state, @NonNull Level level, @NonNull BlockPos pos, @NonNull Block block, @Nullable Orientation orientation, boolean movedByPiston) {
         super.neighborChanged(state, level, pos, block, orientation, movedByPiston);
     }
 
     @Override
-    protected void updateIndirectNeighbourShapes(BlockState state, LevelAccessor level, BlockPos pos, @UpdateFlags int updateFlags, int updateLimit) {
+    protected void updateIndirectNeighbourShapes(@NonNull BlockState state, @NonNull LevelAccessor level, @NonNull BlockPos pos, @UpdateFlags int updateFlags, int updateLimit) {
         if(level instanceof ServerLevel serverLevel) {
             Patchwork.UNIVERSE.getGraphWorld(serverLevel).updateNodes(pos);
         }
     }
 
     @Override
-    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+    protected void onPlace(@NonNull BlockState state, Level level, @NonNull BlockPos pos, @NonNull BlockState oldState, boolean movedByPiston) {
         if(level.isClientSide()) return;
 
         SFControllerBlockEntity thisEntity = (SFControllerBlockEntity) level.getBlockEntity(pos);
@@ -141,12 +140,12 @@ public class SFTerminal extends DirectionalBlock implements SFNetworkConnectable
     }
 
     @Override
-    public int insert(int amount, TransactionContext transaction) {
+    public int insert(int amount, @NonNull TransactionContext transaction) {
         return this.storage.insert(amount, transaction);
     }
 
     @Override
-    public int extract(int amount, TransactionContext transaction) {
+    public int extract(int amount, @NonNull TransactionContext transaction) {
         return this.storage.extract(amount, transaction);
     }
 }

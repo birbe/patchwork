@@ -46,6 +46,7 @@ import party.stoat.patchwork.virtual.ServerSavedData;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class StorageConfiguration {
 
@@ -245,6 +246,10 @@ public class StorageConfiguration {
         var descriptors = StorageConfiguration.getNodesFromNetworkResources(configs, graph, level, player);
 
         PacketDistributor.sendToPlayer(player, new SFControllerSyncClientboundPayload(configs.stream().filter(c -> c.graphs != null).flatMap(c -> c.graphs.stream()).toList(), descriptors, controllerPos));
+    }
+
+    public static Stream<Node> getNodes(List<StorageConfiguration> configs) {
+        return configs.stream().flatMap(config -> config.instances.values().stream().flatMap(patch -> patch.nodes.values().stream()));
     }
 
     public static List<NodeCategory> getNodesFromNetworkResources(List<StorageConfiguration> configs, BlockGraph graph, ServerLevel level, ServerPlayer player) {

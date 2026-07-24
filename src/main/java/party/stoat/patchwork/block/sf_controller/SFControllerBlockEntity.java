@@ -23,6 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.ticks.ContainerSingleItem;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 import net.neoforged.neoforge.transfer.energy.SimpleEnergyHandler;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import org.jspecify.annotations.NonNull;
@@ -31,6 +32,7 @@ import party.stoat.patchwork.MyBlocks;
 import party.stoat.patchwork.Patchwork;
 import party.stoat.patchwork.patchgraph.StorageConfiguration;
 import party.stoat.patchwork.block.SFEnergyHandler;
+import party.stoat.patchwork.patchgraph.nodes.SFSystemPowerNode;
 import party.stoat.patchwork.patchgraph.nodes.VirtualizedBlockNode;
 import party.stoat.patchwork.graphlib.SFControllerNode;
 
@@ -44,11 +46,16 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
     private ItemStack theItem = ItemStack.EMPTY;
     private List<ItemStack> spawnIn = new ArrayList<>();
 
-    public SimpleEnergyHandler storage = new SimpleEnergyHandler(1000000, 1000000, 1000000);
+    public SimpleEnergyHandler selfStorage = new SimpleEnergyHandler(10000, 1000, 10);
+    public MultiEnergyHandler handler = new MultiEnergyHandler(List.of());
 
     public HashSet<BlockPos> loaded = new HashSet<>();
 
     public ServerPlayer watcher;
+
+    public @Nullable BlockGraph getGraphLibGraph() {
+        return this.level instanceof ServerLevel e ? Patchwork.UNIVERSE.getGraphWorld(e).getGraphForNode(new NodePos(this.getBlockPos(), SFControllerNode.INSTANCE)) : null;
+    }
 
     public static void tick(Level level, BlockPos blockPos, BlockState blockState, SFControllerBlockEntity entity) {
         ServerLevel serverLevel;
@@ -66,7 +73,7 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
 
         if(sfNetworkGraph == null) return;
 
-        if(entity.storage.getAmountAsLong() > 0) {
+        if(entity.selfStorage.getAmountAsLong() > 0) {
             if(!blockState.getValue(SFController.POWERED)) {
                 level.setBlockAndUpdate(blockPos, blockState.setValue(SFController.POWERED, true));
             }
@@ -100,11 +107,29 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
             config.initializeIfNeeded(serverLevel.getServer());
         }
 
+        //Find energy handlers
+
+        List<EnergyHandler> energyHandlers = new ArrayList<>();
+        energyHandlers.add(entity.selfStorage);
+
+        for(var config : configs) {
+            for(var instance : config.instances.values()) {
+                for(var node : instance.nodes.values()) {
+                    if(node instanceof SFSystemPowerNode powerNode) {
+                        var handler = powerNode.getEnergyHandler((ServerLevel) entity.getLevel(), null, instance);
+                        if(handler != null) energyHandlers.add(handler);
+                    }
+                }
+            }
+        }
+
+        entity.handler.handlers = energyHandlers;
+
         outer: try(Transaction transaction = Transaction.openRoot()) {
             for(var sfNode : sfNetworkGraph.getNodes().toList()) {
                 if(sfNode.getBlockState().getBlock() instanceof SFEnergyHandler energyHandler) {
                     var desired = energyHandler.desiredAmount();
-                    var extractedAmount = entity.storage.extract(desired, transaction);
+                    var extractedAmount = entity.selfStorage.extract(desired, transaction);
 
                     if(extractedAmount < desired) break outer;
 
@@ -140,16 +165,14 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
 
         for(var config : configs) {
             var nodeGraph = Patchwork.UNIVERSE.getGraphWorld(serverLevel).getGraphForNode(new NodePos(blockPos, SFControllerNode.INSTANCE));
-//            entity.storage.amount -= cost;
-
 
             outer: try(Transaction transaction = Transaction.openRoot()) {
                 for(var patchInstance : config.instances.values()) {
                     for(var node : patchInstance.nodes.values()) {
                         try(Transaction inner = Transaction.open(transaction)) {
                             node.tick(config, patchInstance, serverLevel, nodeGraph, inner, entity);
-                            var amount = entity.storage.getAmountAsInt() - 10;
-                            entity.storage.set(Math.max(amount, 0));
+                            var amount = entity.selfStorage.getAmountAsInt() - 10;
+                            entity.selfStorage.set(Math.max(amount, 0));
 
                             if(amount >= 0) inner.commit();
                             else {
@@ -194,7 +217,7 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
     @Override
     protected void saveAdditional(@NonNull ValueOutput output) {
         ContainerHelper.saveAllItems(output, NonNullList.of(theItem));
-        output.putInt("energy", this.storage.getAmountAsInt());
+        output.putInt("energy", this.selfStorage.getAmountAsInt());
 
         super.saveAdditional(output);
     }
@@ -203,7 +226,7 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
     protected void loadAdditional(@NonNull ValueInput input) {
         ContainerHelper.loadAllItems(input, NonNullList.of(theItem));
 
-        input.getInt("energy").ifPresent(e -> this.storage.set(e));
+        input.getInt("energy").ifPresent(e -> this.selfStorage.set(e));
 
         super.loadAdditional(input);
     }

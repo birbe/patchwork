@@ -33,6 +33,7 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.level.ChunkDataEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -416,7 +417,7 @@ public class Patchwork {
         event.registerBlockEntity(
                 Capabilities.Energy.BLOCK,
                 MyBlocks.SF_CONTROLLER_BLOCK_ENTITY.get(),
-                (entity, side) -> entity.storage
+                (entity, side) -> entity.handler
         );
     }
 

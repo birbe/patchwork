@@ -15,6 +15,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.ticks.ScheduledTick;
 import net.minecraft.world.ticks.TickContainerAccess;
 import org.jspecify.annotations.NonNull;
@@ -25,7 +26,6 @@ import java.util.Optional;
 
 public class VirtualSingleChunk extends LevelChunk {
 
-    private Level realLevel;
     private final BlockPos blockPos;
     private BlockState theState;
     private @Nullable BlockEntity theEntity;
@@ -144,6 +144,6 @@ public class VirtualSingleChunk extends LevelChunk {
 
     @Override
     public @NonNull FluidState getFluidState(@NonNull BlockPos blockPos) {
-        return this.realLevel.getFluidState(blockPos);
+        return Fluids.EMPTY.defaultFluidState();
     }
 }

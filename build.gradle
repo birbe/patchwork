@@ -151,7 +151,7 @@ dependencies {
         }
     }
 
-//    implementation 'com.kneelawk.graphlib:graphlib-core-neoforge:2.0.3-beta.0.matti+26.2'
+    implementation 'com.kneelawk.graphlib:graphlib-core-neoforge:2.0.3-beta.0.matti+26.1'
 
     compileOnly("mekanism:Mekanism:26.2-10.8.0.homebaked")
 //    runtimeOnly(fg.deobf("mekanism:Mekanism:26.2-10.8.0.homebaked"))

@@ -66,15 +66,29 @@ public class SplitterNode extends Node {
         @Override
         public int insert(@NonNull T resource, int amount, @NonNull TransactionContext transaction) {
             if(handlers.isEmpty()) return 0;
+
+            var surplus = 0;
+
             var per = amount / handlers.size();
 
-            var inserted = 0;
+            var totalInserted = 0;
 
             for(var handler : handlers) {
-                inserted += handler.insert(resource, per, transaction);
+                var inserted = handler.insert(resource, per, transaction);
+                totalInserted += inserted;
+                surplus += per - inserted;
             }
 
-            return inserted;
+            surplus += amount - totalInserted;
+
+            for(var handler : handlers) {
+                var surplusInserted = handler.insert(resource, surplus, transaction);
+                surplus -= surplusInserted;
+                totalInserted += surplusInserted;
+                if(surplus == 0) break;
+            }
+
+            return totalInserted;
         }
 
         @Override

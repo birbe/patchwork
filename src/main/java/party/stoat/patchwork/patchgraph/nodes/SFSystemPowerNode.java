@@ -12,9 +12,11 @@ import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jspecify.annotations.Nullable;
 import party.stoat.patchwork.Patchwork;
+import party.stoat.patchwork.block.sf_controller.MultiEnergyHandler;
 import party.stoat.patchwork.patchgraph.*;
 import party.stoat.patchwork.block.sf_controller.SFControllerBlockEntity;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class SFSystemPowerNode extends Node {
@@ -27,45 +29,61 @@ public class SFSystemPowerNode extends Node {
 
     @Override
     public void tick(StorageConfiguration config, PatchInstance patch, ServerLevel level, BlockGraph network, TransactionContext context, SFControllerBlockEntity controller) {
-        var outputs = this.getOutputConnections(patch.graph);
+//        var outputs = this.getOutputConnections(patch.graph);
+//
+//        for(var connection : outputs) {
+//            var connectedNode = patch.nodes.get(connection.to());
+//            var foreignPort = connectedNode.getDescriptor().getPort(connection.keyTo());
+//
+//            if(foreignPort == null) continue;
+//
+//            if(foreignPort.d().d() != NodeDescriptor.DataType.Energy) continue;
+//
+//            var storage = controller.storage;
+//
+//            var foreignStorage = connectedNode.getEnergyHandler(level, foreignPort, patch);
+//
+//            if(foreignStorage == null) continue;
+//
+//            succeedAll: try(Transaction inner = Transaction.open(context)) {
+//
+//                int toInsert = 0;
+//
+//                try(Transaction initial = Transaction.open(inner)) {
+//                    var extracted = storage.extract(Math.min(foreignStorage.getCapacityAsInt(), 10000), initial);
+//                    var inserted = foreignStorage.insert(extracted, initial);
+//
+//                    if(inserted < extracted) {
+//                        toInsert = inserted;
+//                    } else if(inserted == extracted) {
+//                        initial.commit();
+//                        inner.commit();
+//                        break succeedAll;
+//                    }
+//                }
+//
+//                var extracted = storage.extract(toInsert, inner);
+//                var inserted = foreignStorage.insert(toInsert, inner);
+//
+//                if(inserted == extracted) inner.commit();
+//            }
+//        }
+    }
 
-        for(var connection : outputs) {
-            var connectedNode = patch.nodes.get(connection.to());
-            var foreignPort = connectedNode.getDescriptor().getPort(connection.keyTo());
+    @Override
+    public @Nullable EnergyHandler getEnergyHandler(ServerLevel level, NodeDescriptor.IO port, PatchInstance graph) {
+        var outputs = this.getOutputConnections(graph.graph);
 
-            if(foreignPort == null) continue;
+        var handlers = outputs.stream().map(connection -> {
+            if(connection == null) return null;
 
-            if(foreignPort.d().d() != NodeDescriptor.DataType.Energy) continue;
+            var foreignNode = graph.nodes.get(connection.to());
+            if(foreignNode == null) return null;
 
-            var storage = controller.storage;
+            return foreignNode.getEnergyHandler(level, foreignNode.getDescriptor().getPort(connection.keyTo()), graph);
+        }).filter(Objects::nonNull);
 
-            var foreignStorage = connectedNode.getEnergyHandler(level, foreignPort, patch);
-
-            if(foreignStorage == null) continue;
-
-            succeedAll: try(Transaction inner = Transaction.open(context)) {
-
-                int toInsert = 0;
-
-                try(Transaction initial = Transaction.open(inner)) {
-                    var extracted = storage.extract(Math.min(foreignStorage.getCapacityAsInt(), 10000), initial);
-                    var inserted = foreignStorage.insert(extracted, initial);
-
-                    if(inserted < extracted) {
-                        toInsert = inserted;
-                    } else if(inserted == extracted) {
-                        initial.commit();
-                        inner.commit();
-                        break succeedAll;
-                    }
-                }
-
-                var extracted = storage.extract(toInsert, inner);
-                var inserted = foreignStorage.insert(toInsert, inner);
-
-                if(inserted == extracted) inner.commit();
-            }
-        }
+        return new MultiEnergyHandler(handlers.toList());
     }
 
     @Override

@@ -6,10 +6,43 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import party.stoat.patchwork.Patchwork;
+import party.stoat.patchwork.patchgraph.StorageConfiguration;
 
 public class SFControllerMenu extends AbstractContainerMenu {
+
+    static class SFControllerInputSlot extends Slot {
+
+        public SFControllerInputSlot(Container container, int slot, int x, int y) {
+            super(container, slot, x, y);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack itemStack) {
+            if(!(itemStack.getItem() instanceof BlockItem)) return false;
+
+            if(this.container instanceof SFControllerBlockEntity controller) {
+                var graph = controller.getGraphLibGraph();
+                if(graph == null) return false;
+                var configs = StorageConfiguration.getConfigurationsFromNetwork(graph);
+
+                for(var config : configs) {
+                    if(config.virtualized.size() < config.maxVirtualized) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            return 1;
+        }
+    }
 
     public SFControllerMenu(int containerId, Inventory inventory) {
         this(containerId, inventory, new SimpleContainer(1));
@@ -18,7 +51,7 @@ public class SFControllerMenu extends AbstractContainerMenu {
     public SFControllerMenu(int containerId, Inventory inventory, Container container) {
         super(Patchwork.CONTROLLER_MENU_TYPE.get(), containerId);
 
-        this.addSlot(new Slot(
+        this.addSlot(new SFControllerInputSlot(
                 container,
                 0,
                 -9999,
