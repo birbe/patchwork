@@ -91,6 +91,8 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
 
         public ArrayList<StorageConfiguration.NodeCategory> serverProvidedDescriptors = new ArrayList<>();
 
+        public @Nullable RenderableGraphNode nodeBeingEdited;
+
         public void markDirty() {
             this.editorDirty = true;
         }
@@ -163,6 +165,11 @@ public class EditorScreen extends AbstractContainerScreen<SFControllerMenu> {
 
     public void save() {
         if(state.getCurrentGraph() == null) return;
+
+        if(state.nodeBeingEdited != null) {
+            state.nodeBeingEdited.setConfiguring(false, this.state);
+        }
+
         this.state.editorDirty = false;
         ClientPacketDistributor.sendToServer(new UpdatePatchServerboundPayload(
                 state.getCurrentGraph().graphId,

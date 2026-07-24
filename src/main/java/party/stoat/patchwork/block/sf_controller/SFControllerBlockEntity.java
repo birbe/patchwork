@@ -20,7 +20,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.ticks.ContainerSingleItem;
@@ -53,6 +52,11 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
 
     public static void tick(Level level, BlockPos blockPos, BlockState blockState, SFControllerBlockEntity entity) {
         ServerLevel serverLevel;
+
+        if(entity.watcher != null && !(entity.watcher.containerMenu instanceof SFControllerMenu)) {
+            entity.watcher = null;
+        }
+
         if(level instanceof ServerLevel s) {
             serverLevel = s;
         } else return;
@@ -188,15 +192,18 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
+    protected void saveAdditional(@NonNull ValueOutput output) {
         ContainerHelper.saveAllItems(output, NonNullList.of(theItem));
+        output.putInt("energy", this.storage.getAmountAsInt());
 
         super.saveAdditional(output);
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
+    protected void loadAdditional(@NonNull ValueInput input) {
         ContainerHelper.loadAllItems(input, NonNullList.of(theItem));
+
+        input.getInt("energy").ifPresent(e -> this.storage.set(e));
 
         super.loadAdditional(input);
     }
@@ -217,18 +224,18 @@ public class SFControllerBlockEntity extends BlockEntity implements MenuProvider
     }
 
     @Override
-    public boolean stillValid(Player player) {
+    public boolean stillValid(@NonNull Player player) {
         return false;
     }
 
 
     @Override
-    public Component getDisplayName() {
+    public @NonNull Component getDisplayName() {
         return Component.translatable("block.patchwork.patch_controller");
     }
 
     @Override
-    public @Nullable AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
+    public @Nullable AbstractContainerMenu createMenu(int containerId, @NonNull Inventory inventory, @NonNull Player player) {
         return new SFControllerMenu(containerId, inventory, this);
     }
 }

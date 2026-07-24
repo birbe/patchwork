@@ -354,6 +354,8 @@ public class RenderableGraphNode extends Renderable {
                 outputs.offsetX = Math.max(outputs.offsetX, 80);
                 this.headerAsText.content = this.descriptor.title();
             } else {
+                state.nodeBeingEdited = this;
+
                 this.oldInputs = this.inputs.elements;
                 this.oldOutputs = this.outputs.elements;
 

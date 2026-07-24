@@ -6,9 +6,11 @@ import com.kneelawk.graphlib.api.graph.user.BlockNode;
 import com.kneelawk.graphlib.api.util.NodePos;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Interaction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -90,6 +92,10 @@ public class SFTerminal extends DirectionalBlock implements SFNetworkConnectable
 
             if(graph != null) for(var node : graph.getNodes().toList()) {
                 if(node.getBlockEntity() instanceof SFControllerBlockEntity e) {
+                    if(e.watcher != null) {
+                        player.sendSystemMessage(Component.literal("This network is already in use by another player, please wait until they close their terminal."));
+                        return InteractionResult.FAIL;
+                    }
                     player.openMenu(e);
                     e.watcher = (ServerPlayer) player;
 

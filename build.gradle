@@ -140,7 +140,18 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 //    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}")// Mekanism
 //    modImplementation("com.kneelawk.graphlib:core:2.0.3-beta.0.matti+26.2")
-    implementation 'com.kneelawk.graphlib:graphlib-core-neoforge:2.0.3-beta.0.matti+26.2'
+
+    jarJar(implementation("com.kneelawk.graphlib:graphlib-core-neoforge")) {
+        version {
+            // https://maven.nucleoid.xyz/releases/com/kneelawk/graphlib/graphlib-core-neoforge/2.0.3-beta.0.matti+26.1/graphlib-core-neoforge-2.0.3-beta.0.matti+26.1.pom
+
+            strictly '2.0.3-beta.0.matti+26.1'
+            // Version used in your workspace and bundled in mod jar
+//            prefer '2.8.0'
+        }
+    }
+
+//    implementation 'com.kneelawk.graphlib:graphlib-core-neoforge:2.0.3-beta.0.matti+26.2'
 
     compileOnly("mekanism:Mekanism:26.2-10.8.0.homebaked")
 //    runtimeOnly(fg.deobf("mekanism:Mekanism:26.2-10.8.0.homebaked"))
